@@ -1,0 +1,28 @@
+{
+    "name": "R Dev Environment",
+    "image": "docker.io/rkrispin/vscode_r_dev:0.1.0",
+    // "build": {
+    //     "dockerfile": "Dockerfile.dev",
+    //     "context": "."
+    // },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // R Extensions
+                "reditorsupport.r",
+                "rdebugger.r-debugger",
+                // Documentation Extensions
+                "quarto.quarto",
+                "purocean.drawio-preview",
+                "redhat.vscode-yaml",
+                "yzhang.markdown-all-in-one",
+                // Docker Supporting Extensions
+                "ms-azuretools.vscode-docker",
+                "ms-vscode-remote.remote-containers",
+                // Python Extensions
+                "ms-python.python",
+                "ms-toolsai.jupyter"
+            ]
+        }
+    }
+}

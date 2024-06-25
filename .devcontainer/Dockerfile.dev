@@ -1,0 +1,10 @@
+# Setting an R environment from scratch 
+# Step 1 - Import base image
+FROM rkrispin/base-r:4.3.3
+
+RUN mkdir pkgs
+
+COPY packages.json install_packages.R ./pkgs/
+
+RUN Rscript ./pkgs/install_packages.R
+
