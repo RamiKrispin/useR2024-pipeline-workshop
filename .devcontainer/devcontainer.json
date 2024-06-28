@@ -1,6 +1,6 @@
 {
-    "name": "R Dev Environment",
-    "image": "docker.io/rkrispin/vscode_r_dev:0.1.0",
+    "name": "useR!2024 Workshop",
+    "image": "docker.io/rkrispin/user2024workshop:${localEnv:CPU}.4.4.0",
     // "build": {
     //     "dockerfile": "Dockerfile.dev",
     //     "context": "."
@@ -24,5 +24,8 @@
                 "ms-toolsai.jupyter"
             ]
         }
+    },
+    "remoteEnv": {
+        "EIA_API_KEY": "${localEnv:EIA_API_KEY}"
     }
 }

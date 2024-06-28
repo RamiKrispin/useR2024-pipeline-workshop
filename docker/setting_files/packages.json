@@ -1,0 +1,32 @@
+{
+    "packages": [
+        {
+            "package": "lubridate",
+            "version": "1.8.0"
+        },
+        {
+            "package": "tsibble",
+            "version": "1.1.4"
+        },
+        {
+            "package": "fable",
+            "version": "0.3.4"
+        },
+        {
+            "package": "feasts",
+            "version": "0.3.0"
+        },
+        {
+            "package": "modeltime",
+            "version": "1.2.8"
+        },
+        {
+            "package": "pointblank",
+            "version": "0.12.1"
+        },
+        {
+            "package": "mlflow",
+            "version": "2.13.1"
+        }
+    ]
+}

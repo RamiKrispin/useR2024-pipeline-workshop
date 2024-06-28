@@ -10,3 +10,8 @@ if (interactive() && Sys.getenv("TERM_PROGRAM") == "vscode") {
         })
     }
 }
+
+# Source: https://github.com/REditorSupport/vscode-R/wiki/R-Session-watcher#advanced-usage-for-self-managed-r-sessions
+if (interactive()) {
+    source("/root/.vscode-R/init.R")
+}

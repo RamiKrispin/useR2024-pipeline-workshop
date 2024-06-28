@@ -1,16 +1,20 @@
 {
     "packages": [
         {
+            "package": "AsioHeaders",
+            "version": "1.22.1-2"
+        },
+        {
             "package": "BH",
-            "version": "1.81.0-1"
+            "version": "1.84.0-0"
         },
         {
             "package": "languageserver",
-            "version": "0.3.12"
+            "version": "0.3.16"
         },
         {
             "package": "httpgd",
-            "version": "1.3.1"
+            "version": "2.0.2"
         },
         {
             "package": "rmarkdown",
@@ -35,16 +39,6 @@
         {
             "package": "usethis",
             "version": "2.2.2"
-        }
-    ],
-    "package_dev": [
-        {
-            "package": "BH",
-            "version": "1.81.0-1"
-        },
-        {
-            "package": "httpgd",
-            "version": "1.3.1"
         }
     ]
 }
