@@ -1,5 +1,5 @@
 ---
-title: "EIA API - Data Backfill"
+title: "Data Backfill"
 format:
   html:
     code-fold: false
@@ -37,10 +37,19 @@ source("../pipeline/eia_data.R")
 meta_json <- read_json(path = "../settings/settings.json")
 s <- meta_json$series
 series <- lapply(1:length(s), function(i) {
+    subba_id <- NULL
+
+    subba_id <- as.numeric(s[[i]]$subba_id)
+    if (!is.na(as.numeric(s[[i]]$subba_id))) {
+        subba_id <- as.numeric(s[[i]]$subba_id)
+    } else {
+        subba_id <- s[[i]]$subba_id
+    }
+
     return(data.frame(
         parent_id = s[[i]]$parent_id,
         parent_name = s[[i]]$parent_name,
-        subba_id = s[[i]]$subba_id,
+        subba_id = subba_id,
         subba_name = s[[i]]$subba_name
     ))
 }) |>
@@ -87,10 +96,13 @@ end <- as.POSIXct(paste(
 ))
 
 
+# start <- as.POSIXct("2024-05-18 08:00:00")
+
+# end <- as.POSIXct("2024-06-01 01:00:00")
 attr(start, "tzone") <- "UTC"
 attr(end, "tzone") <- "UTC"
 
-offset <- 1800
+offset <- 2200
 
 eia_api_key <- Sys.getenv("EIA_API_KEY")
 ```
@@ -163,6 +175,8 @@ We will use Plotly to visualize the series:
 
 ```{r}
 d <- data |> arrange(subba, period)
+
+d$subba <- as.character(d$subba)
 
 p <- plot_ly(d, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
 

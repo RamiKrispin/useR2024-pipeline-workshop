@@ -1,0 +1,185 @@
+---
+title: "Data Backfill"
+format:
+  html:
+    code-fold: false
+---
+
+
+
+
+The goal of this doc is to execute an initial data pull of the hourly demand for California balancing authority subregion (CISO). This includes the following four independent system operators:
+
+- Pacific Gas and Electric (PGAE)
+- Southern California Edison (SCE)
+- San Diego Gas and Electric (SDGE)
+- Valley Electric Association (VEA)
+
+The data backfill process includes the following steps:
+
+- Setting parameters and pulling the data
+- Data quality checks
+- Saving the data and creating a log file
+
+## Load Libraries and Functions
+
+
+
+```{r}
+#| warning: false
+library(dplyr)
+library(EIAapi)
+library(jsonlite)
+library(gt)
+library(plotly)
+source("../pipeline/eia_data.R")
+```
+
+```{r}
+#| warning: false
+meta_json <- read_json(path = "../settings/settings.json")
+s <- meta_json$series
+series <- lapply(1:length(s), function(i) {
+    subba_id <- NULL
+
+    subba_id <- as.numeric(s[[i]]$subba_id)
+    if (!is.na(as.numeric(s[[i]]$subba_id))) {
+        subba_id <- as.numeric(s[[i]]$subba_id)
+    } else {
+        subba_id <- s[[i]]$subba_id
+    }
+
+    return(data.frame(
+        parent_id = s[[i]]$parent_id,
+        parent_name = s[[i]]$parent_name,
+        subba_id = subba_id,
+        subba_name = s[[i]]$subba_name
+    ))
+}) |>
+    bind_rows()
+
+api_path <- meta_json$api_path
+meta_path <- meta_json$meta_path
+data_path <- meta_json$data_path
+```
+
+```{r}
+#| warning: false
+facets_template <- list(
+    parent = NULL,
+    subba = NULL
+)
+
+start <- as.POSIXct(paste(
+    paste(
+        meta_json$start$year,
+        meta_json$start$month,
+        meta_json$start$day,
+        sep = "-"
+    ),
+    " ",
+    meta_json$start$hour,
+    ":00:00",
+    sep = ""
+))
+
+
+end <- as.POSIXct(paste(
+    paste(
+        meta_json$end$year,
+        meta_json$end$month,
+        meta_json$end$day,
+        sep = "-"
+    ),
+    " ",
+    meta_json$end$hour,
+    ":00:00",
+    sep = ""
+))
+
+
+# start <- as.POSIXct("2024-05-18 08:00:00")
+
+# end <- as.POSIXct("2024-06-01 01:00:00")
+attr(start, "tzone") <- "UTC"
+attr(end, "tzone") <- "UTC"
+
+offset <- 2200
+
+eia_api_key <- Sys.getenv("EIA_API_KEY")
+```
+
+```{r}
+metadata <- eia_metadata(api_key = eia_api_key, api_path = api_path)
+print(names(metadata))
+
+print(metadata$startPeriod)
+print(metadata$endPeriod)
+
+```
+
+```{r}
+#| warning: false
+meta <- NULL
+data <- NULL
+for (i in 1:nrow(series)) {
+    facets <- facets_template
+    facets["parent"] <- series[i, "parent_id"]
+    facets["subba"] <- series[i, "subba_id"]
+    print(facets)
+
+    temp <- eia_backfill(
+        start = start,
+        end = end,
+        offset = offset,
+        api_key = eia_api_key,
+        api_path = paste(api_path, "data", sep = ""),
+        facets = facets
+    )
+    index <- seq.POSIXt(from = start, to = end, by = "hour")
+    ts_obj <- data.frame(period = index) |>
+        left_join(temp, by = c("period" = "time"))
+
+    meta_temp <- create_metadata(data = ts_obj, start = start, end = end, type = "backfill")
+    meta_temp$index <- 1
+    meta_df <- as.data.frame(meta_temp)
+
+    meta <- rbind(meta, meta_df)
+    data <- rbind(data, ts_obj)
+}
+
+```
+
+```{r}
+print(meta)
+# The initial pull has some missing values
+head(data)
+```
+
+```{r}
+# Save the data
+d <- append_data(data_path = data_path, new_data = data, init = TRUE, save = TRUE)
+# Save the metadata
+meta["success"] <- TRUE
+meta["update"] <- TRUE
+m <- append_metadata(meta_path = meta_path, new_meta = meta, init = TRUE, save = TRUE)
+```
+
+
+
+
+### Plot the Series
+
+We will use Plotly to visualize the series:
+
+
+
+```{r}
+d <- data |> arrange(subba, period)
+
+d$subba <- as.character(d$subba)
+
+p <- plot_ly(d, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
+
+p
+```
