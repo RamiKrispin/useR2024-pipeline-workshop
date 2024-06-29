@@ -15,6 +15,8 @@ p=$(pwd)
 git config --global --add safe.directory $p
 
 if [[ "$(git status --porcelain)" != "" ]]; then
+    rm -rf docs/index_files/
+    rm docs/index
     quarto render pipeline/index.qmd
     git config --global user.name $USER_NAME
     git config --global user.email $USER_EMAIL
