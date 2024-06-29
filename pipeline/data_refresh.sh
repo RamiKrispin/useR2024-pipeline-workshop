@@ -15,9 +15,11 @@ p=$(pwd)
 git config --global --add safe.directory $p
 
 if [[ "$(git status --porcelain)" != "" ]]; then
-    rm -rf docs/index_files/
-    rm docs/index
+    rm -rf ./docs/index_files/
+    rm docs/index.html
     quarto render pipeline/index.qmd
+    cp ./pipeline/index.html ./docs/
+    cp -R ./pipeline/index_files/ ./docs/index_files/
     git config --global user.name $USER_NAME
     git config --global user.email $USER_EMAIL
     git add csv/*
