@@ -10,6 +10,7 @@ format:
 
 ```{r}
 library(modeltime)
+library(jsonlite)
 ```
 
 
