@@ -22,8 +22,7 @@ if [[ "$(git status --porcelain)" != "" ]]; then
     cp -R ./pipeline/index_files/ ./docs/index_files/
     git config --global user.name $USER_NAME
     git config --global user.email $USER_EMAIL
-    git add csv/*
-    git add metadata/*
+    git add data/*
     git add docs/*
     git commit -m "Auto update of the data"
     git push origin main
