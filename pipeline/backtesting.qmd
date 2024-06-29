@@ -50,3 +50,17 @@ p <- plot_ly(df, x = ~period, y = ~value, color = ~subba, type = "scatter", mode
 
 p
 ```
+
+```{r}
+d <- df |>
+    dplyr::filter(subba == "PGAE") |>
+    dplyr::arrange(period)
+
+head(d)
+
+
+
+
+
+
+```
