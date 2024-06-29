@@ -1,0 +1,5 @@
+"index","parent","subba","time","start","end","start_act","end_act","start_match","end_match","n_obs","na","type","update","success","comments"
+1,"CISO","PGAE",2024-06-28 23:30:19.770482,2018-07-01 08:00:00,2024-06-15 01:00:00,2018-07-01 08:00:00,2024-06-15,TRUE,FALSE,52233,546,"backfill",TRUE,TRUE,"The end argument does not match the actual; Missing values were found; "
+1,"CISO","SCE",2024-06-28 23:32:24.47111,2018-07-01 08:00:00,2024-06-15 01:00:00,2018-07-01 08:00:00,2024-06-15,TRUE,FALSE,52233,546,"backfill",TRUE,TRUE,"The end argument does not match the actual; Missing values were found; "
+1,"CISO","SDGE",2024-06-28 23:34:30.91259,2018-07-01 08:00:00,2024-06-15 01:00:00,2018-07-01 08:00:00,2024-06-15,TRUE,FALSE,52233,546,"backfill",TRUE,TRUE,"The end argument does not match the actual; Missing values were found; "
+1,"CISO","VEA",2024-06-28 23:36:40.230623,2018-07-01 08:00:00,2024-06-15 01:00:00,2018-07-01 08:00:00,2024-06-15,TRUE,FALSE,52233,546,"backfill",TRUE,TRUE,"The end argument does not match the actual; Missing values were found; "

@@ -1,0 +1,51 @@
+--- 
+title: "California Independent System Operator Hourly Demand"
+subtitle: "useR!2024 Workshop"
+format: dashboard
+--- 
+
+```{r}
+library(dplyr)
+library(plotly)
+library(jsonlite)
+
+```
+
+```{r}
+meta_json <- read_json(path = "../settings/settings.json")
+meta_path <- meta_json$meta_path
+data_path <- meta_json$data_path
+
+data <- readr::read_csv(file = data_path, col_types = readr::cols(
+    period = readr::col_datetime(format = ""),
+    subba = readr::col_character(),
+    subba_name = readr::col_character(),
+    parent = readr::col_character(),
+    parent_name = readr::col_character(),
+    value = readr::col_double(),
+    value_units = readr::col_character()
+))
+
+```
+
+
+
+
+
+## row
+
+```{r}
+#| title: Hourly Demand By Provider
+
+
+p <- plot_ly(
+    data = data,
+    x = ~period,
+    y = ~value,
+    color = ~subba,
+    type = "scatter",
+    mode = "lines"
+)
+
+p
+```

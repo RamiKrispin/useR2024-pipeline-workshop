@@ -1,0 +1,52 @@
+---
+title: "Backtesting"
+format:
+  html:
+    code-fold: false
+---
+
+
+## Load Libraries
+
+```{r}
+library(modeltime)
+```
+
+
+## Load Settings
+
+```{r}
+meta_json <- read_json(path = "../settings/settings.json")
+
+series <- lapply(1:length(s), function(i) {
+    return(data.frame(
+        parent_id = s[[i]]$parent_id,
+        parent_name = s[[i]]$parent_name,
+        subba_id = s[[i]]$subba_id,
+        subba_name = s[[i]]$subba_name
+    ))
+}) |>
+    bind_rows()
+
+meta_path <- meta_json$meta_path
+data_path <- meta_json$data_path
+```
+
+
+## Load the Data
+
+```{r}
+df <- readr::read_csv(data_path)
+df$time <- lubridate::ymd_hms(df$period)
+head(df)
+tail(df)
+
+```
+
+
+
+```{r}
+p <- plot_ly(df, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
+
+p
+```

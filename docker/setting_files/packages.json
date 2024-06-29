@@ -27,6 +27,18 @@
         {
             "package": "mlflow",
             "version": "2.13.1"
+        },
+        {
+            "package": "jsonlite",
+            "version": "1.8.8"
+        },
+        {
+            "package": "EIAapi",
+            "version": "0.1.2"
+        },
+        {
+            "package": "gt",
+            "version": "0.10.1"
         }
     ]
 }

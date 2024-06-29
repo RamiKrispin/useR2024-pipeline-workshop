@@ -1,0 +1,166 @@
+---
+title: "Data Refrsh"
+format:
+  html:
+    code-fold: false
+---
+
+## Load libraries
+
+```{r}
+#| label: load-libraries
+#| warning: false
+library(dplyr)
+library(EIAapi)
+library(jsonlite)
+library(gt)
+library(plotly)
+library(lubridate)
+source("../pipeline/eia_data.R")
+```
+
+API Settings:
+
+```{r}
+#| label: api settings
+meta_json <- read_json(path = "../settings/settings.json")
+s <- meta_json$series
+series <- lapply(1:length(s), function(i) {
+    return(data.frame(
+        parent_id = s[[i]]$parent_id,
+        parent_name = s[[i]]$parent_name,
+        subba_id = s[[i]]$subba_id,
+        subba_name = s[[i]]$subba_name
+    ))
+}) |>
+    bind_rows()
+
+
+facets_template <- list(
+    parent = NULL,
+    subba = NULL
+)
+
+offset <- 2250
+
+eia_api_key <- Sys.getenv("EIA_API_KEY")
+
+api_path <- meta_json$api_path
+meta_path <- meta_json$meta_path
+data_path <- meta_json$data_path
+```
+
+```{r}
+#| label: metadata table
+#| warning: false
+meta_obj <- get_metadata(api_key = eia_api_key, api_path = api_path, meta_path = meta_path, series = series)
+
+gt(meta_obj$request_meta)
+```
+
+
+```{r}
+#| label: update the data
+#| warning: false
+m <- meta_obj$request_meta
+index <- meta_obj$last_index + 1
+
+data <- NULL
+meta_new <- NULL
+
+for (i in 1:nrow(m)) {
+    facets <- facets_template
+    facets$parent <- m$parent[i]
+    facets$subba <- m$subba[i]
+    start <- m$request_start[i]
+    end <- m$end[i]
+    print(paste(facets$parent, facets$subba, sep = " - "))
+
+    if (m$updates_available[i]) {
+        temp <- eia_backfill(
+            start = start,
+            end = end,
+            offset = offset,
+            api_key = eia_api_key,
+            api_path = paste(api_path, "data", sep = ""),
+            facets = facets
+        )
+        index <- seq.POSIXt(from = start, to = end, by = "hour")
+        ts_obj <- data.frame(period = index) |>
+            left_join(temp, by = c("period" = "time"))
+    } else {
+        ts_obj <- NULL
+        print("No new data is available")
+    }
+
+    meta_temp <- create_metadata(data = ts_obj, start = start, end = end, type = "refresh")
+
+
+    if (is.null(ts_obj)) {
+        meta_temp$parent <- m$parent[i]
+        meta_temp$subba <- m$subba[i]
+    }
+
+    if (meta_temp$success) {
+        print("Append the new data")
+        d <- append_data(data_path = data_path, new_data = ts_obj, save = TRUE)
+        meta_temp$update <- TRUE
+    } else {
+        meta_temp$update <- FALSE
+        meta_temp$comments <- paste(meta_temp$comments, "The data refresh failed, please check the log; ", sep = "")
+    }
+    meta_temp$index <- NA
+    meta_df <- as.data.frame(meta_temp)
+    if (!is.null(ts_obj)) {
+        data <- bind_rows(data, ts_obj)
+    }
+    meta_new <- bind_rows(meta_new, meta_df)
+}
+
+```
+
+```{r}
+#| label: new meta
+gt(meta_new)
+```
+
+```{r}
+#| label: update the metadata
+meta_updated <- append_metadata(meta_path = meta_path, new_meta = meta_new, save = TRUE, init = FALSE)
+```
+
+### Plot the Series
+
+We will use Plotly to visualize the series:
+
+
+```{r}
+#| label: plot new data
+if (!is.null(data)) {
+    d <- data |> arrange(subba, period)
+
+    p <- plot_ly(d, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
+
+    p
+} else {
+    print("No new data is available")
+}
+```
+
+
+```{r}
+#| label: plot the series
+data <- readr::read_csv(file = data_path, col_types = readr::cols(
+    period = readr::col_datetime(format = ""),
+    subba = readr::col_character(),
+    subba_name = readr::col_character(),
+    parent = readr::col_character(),
+    parent_name = readr::col_character(),
+    value = readr::col_double(),
+    value_units = readr::col_character()
+))
+
+p <- plot_ly(data, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
+
+p
+```
