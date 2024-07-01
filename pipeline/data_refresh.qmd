@@ -78,13 +78,14 @@ for (i in 1:nrow(m)) {
 
     if (m$updates_available[i]) {
         temp <- eia_backfill(
-            start = start,
-            end = end,
+            start = start - lubridate::hours(24),
+            end = end + lubridate::hours(24),
             offset = offset,
             api_key = eia_api_key,
             api_path = paste(api_path, "data", sep = ""),
             facets = facets
-        )
+        ) |> dplyr::filter(time >= start & time <= end)
+
         index <- seq.POSIXt(from = start, to = end, by = "hour")
         ts_obj <- data.frame(period = index) |>
             left_join(temp, by = c("period" = "time"))
