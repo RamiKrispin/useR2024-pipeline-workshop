@@ -39,6 +39,10 @@
         {
             "package": "gt",
             "version": "0.10.1"
+        },
+        {
+            "package": "glmnet",
+            "version": "4.1-8"
         }
     ]
 }
