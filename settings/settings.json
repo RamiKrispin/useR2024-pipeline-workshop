@@ -45,173 +45,124 @@
         "hour": 1
     },
     "backtesting": {
-        "seed": 12345,
-        "freq": 24,
+        "index": "time",
+        "partitions": 20,
+        "test_length": 24,
+        "overlap": 4,
+        "cores": 9,
         "h": 24,
-        "overlap": 0,
         "tags": {
             "type": "backtesting",
             "version": "0.0.1"
         },
         "mlflow_path": "file:///mlruns",
-        "p": 20,
-        "pi": 0.95,
-        "quantiles": [
-            0.025,
-            0.1,
-            0.25,
-            0.5,
-            0.75,
-            0.9,
-            0.975
-        ],
         "experiment_name": "backtesting",
+        "features": {
+            "lags": [
+                24,
+                25,
+                26,
+                27,
+                28,
+                48,
+                72,
+                8760
+            ]
+        },
         "models": {
             "model1": {
-                "model": "LinearRegressionModel",
-                "model_label": "model1",
-                "comments": "LM model with lags, training with 2 years of history",
-                "num_samples": 100,
-                "lags": [
-                    -24,
-                    -168,
-                    -8760
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend"
             },
             "model2": {
-                "model": "LinearRegressionModel",
-                "model_label": "model2",
-                "comments": "LM model with lags, training with 3 years of history",
-                "num_samples": 100,
-                "lags": [
-                    -24,
-                    -168,
-                    -8760
-                ],
-                "likelihood": "quantile",
-                "train": 26280
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month"
             },
             "model3": {
-                "model": "LinearRegressionModel",
-                "model_label": "model3",
-                "comments": "Model 2 with lag 1",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -24,
-                    -25,
-                    -26,
-                    -168,
-                    -8760
-                ],
-                "likelihood": "quantile",
-                "train": 26280
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday"
             },
             "model4": {
-                "model": "LinearRegressionModel",
-                "model_label": "model4",
-                "comments": "Model 1 with additional lags",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -2,
-                    -3,
-                    -4,
-                    -23,
-                    -24,
-                    -25,
-                    -48
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour"
             },
             "model5": {
-                "model": "LinearRegressionModel",
-                "model_label": "model5",
-                "comments": "Model 1 with additional lags",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -2,
-                    -3,
-                    -24,
-                    -48,
-                    -168,
-                    -336,
-                    -8760
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_48"
             },
             "model6": {
-                "model": "XGBModel",
-                "model_label": "model6",
-                "comments": "XGBoost with lags",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -2,
-                    -3,
-                    -24,
-                    -48,
-                    -168,
-                    -336,
-                    -8760
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_48 + lag_72"
             },
             "model7": {
-                "model": "XGBModel",
-                "model_label": "model7",
-                "comments": "XGBoost with lags",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -2,
-                    -3,
-                    -24,
-                    -48,
-                    -168
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_48 + lag_72 + lag_8760"
             },
             "model8": {
-                "model": "XGBModel",
-                "model_label": "model8",
-                "comments": "XGBoost with lags",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -2,
-                    -3,
-                    -24,
-                    -48,
-                    -168
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "prophet_reg",
+                "engine": "prophet",
+                "formula": "y ~ time"
             },
             "model9": {
-                "model": "XGBModel",
-                "model_label": "model9",
-                "comments": "Model 1 with additional lags",
-                "num_samples": 100,
-                "lags": [
-                    -1,
-                    -2,
-                    -3,
-                    -4,
-                    -23,
-                    -24,
-                    -25,
-                    -48
-                ],
-                "likelihood": "quantile",
-                "train": 17520
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model10": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.25, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model11": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.5, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model12": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.75, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model13": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 1, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model14": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 1, penalty = 10",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model16": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_25 + lag_26 + lag_27 + lag_28 + lag_48"
+            },
+            "model17": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.5, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_25 + lag_26 + lag_27 + lag_28 + lag_48"
+            },
+            "model18": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 1, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_25 + lag_26 + lag_27 + lag_28 + lag_48+ lag_72"
             }
         }
     }

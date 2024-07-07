@@ -1,10 +1,6 @@
 {
     "name": "useR!2024 Workshop",
     "image": "docker.io/rkrispin/user2024workshop:${localEnv:CPU}.4.4.0",
-    // "build": {
-    //     "dockerfile": "Dockerfile.dev",
-    //     "context": "."
-    // },
     "customizations": {
         "vscode": {
             "extensions": [

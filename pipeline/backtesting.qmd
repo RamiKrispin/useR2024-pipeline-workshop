@@ -10,7 +10,11 @@ format:
 
 ```{r}
 library(modeltime)
+library(timetk)
 library(jsonlite)
+library(parsnip)
+library(rsample)
+source("../pipeline/backtesting.R")
 ```
 
 
@@ -18,7 +22,7 @@ library(jsonlite)
 
 ```{r}
 meta_json <- read_json(path = "../settings/settings.json")
-
+s <- meta_json$series
 series <- lapply(1:length(s), function(i) {
     return(data.frame(
         parent_id = s[[i]]$parent_id,
@@ -27,41 +31,114 @@ series <- lapply(1:length(s), function(i) {
         subba_name = s[[i]]$subba_name
     ))
 }) |>
-    bind_rows()
+    dplyr::bind_rows()
 
 meta_path <- meta_json$meta_path
 data_path <- meta_json$data_path
+
+
+methods <- meta_json$backtesting$models
+for (i in names(methods)) {
+    methods[[i]]$formula <- as.formula(methods[[i]]$formula)
+}
+
+
+index <- meta_json$backtesting$index
+partitions <- meta_json$backtesting$partitions
+test_length <- meta_json$backtesting$test_length
+overlap <- meta_json$backtesting$overlap
+cores <- meta_json$backtesting$cores
+h <- meta_json$backtesting$h
+lags <- meta_json$backtesting$features$lags |> unlist()
 ```
 
 
 ## Load the Data
 
 ```{r}
-df <- readr::read_csv(data_path)
-df$time <- lubridate::ymd_hms(df$period)
+df <- readr::read_csv(data_path) |>
+    dplyr::select(time = period, y = value, subba) |>
+    dplyr::mutate(
+        trend = as.numeric(time),
+        month = factor(lubridate::month(time, label = TRUE), ordered = FALSE),
+        wday = factor(lubridate::wday(time, label = TRUE), ordered = FALSE),
+        hour = factor(lubridate::hour(time), order = FALSE)
+    )
 head(df)
 tail(df)
 
+
+last_time <- min((df |> dplyr::group_by(subba) |>
+    dplyr::filter(time == max(time)))$time)
+
+end <- lubridate::floor_date(last_time, unit = "day") - lubridate::hours(1)
+start <- end - lubridate::days(365 * 2)
+
+
+input <- df |> dplyr::filter(time <= end & time >= start)
 ```
 
 
 
 ```{r}
-p <- plot_ly(df, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
+p <- plotly::plot_ly(input, x = ~time, y = ~y, color = ~subba, type = "scatter", mode = "lines")
 
 p
 ```
 
+
 ```{r}
-d <- df |>
-    dplyr::filter(subba == "PGAE") |>
-    dplyr::arrange(period)
+bkt <- backtesting_subba(
+    input = df,
+    var = "y",
+    index = "time",
+    lags = lags,
+    partitions = partitions,
+    test_length = test_length,
+    overlap = overlap,
+    cores = cores
+)
 
-head(d)
+```
 
 
+```{r}
+leaderboard <- get_leaderboard((bkt))
+
+gt::gt(leaderboard)
+```
 
 
+```{r}
+plot_error(bkt = bkt)
+```
 
 
+```{r}
+selected_models <- get_selected_models(bkt)
+
+selected_models
+```
+
+```{r}
+saveRDS(object = selected_models, file = "../data/calibrated_models.rds")
+```
+## Create Forecast
+
+
+```{r}
+forecast <- create_forecast_subba(
+    input = input,
+    selected_models = selected_models,
+    h = h,
+    index = "time",
+    var = "y",
+    lags = lags
+)
+head(forecast)
+```
+
+
+```{r}
+plot_forecast(input = input, forecast = forecast, hours = 24 * 3)
 ```
