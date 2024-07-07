@@ -46,16 +46,29 @@
     },
     "backtesting": {
         "index": "time",
-        "partitions": 10,
+        "partitions": 20,
         "test_length": 24,
-        "overlap": 0,
-        "cores": 4,
+        "overlap": 4,
+        "cores": 9,
+        "h": 24,
         "tags": {
             "type": "backtesting",
             "version": "0.0.1"
         },
         "mlflow_path": "file:///mlruns",
         "experiment_name": "backtesting",
+        "features": {
+            "lags": [
+                24,
+                25,
+                26,
+                27,
+                28,
+                48,
+                72,
+                8760
+            ]
+        },
         "models": {
             "model1": {
                 "function_type": "linear_reg",
@@ -78,9 +91,78 @@
                 "formula": "y ~ trend + month + wday + hour"
             },
             "model5": {
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_48"
+            },
+            "model6": {
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_48 + lag_72"
+            },
+            "model7": {
+                "function_type": "linear_reg",
+                "engine": "lm",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_48 + lag_72 + lag_8760"
+            },
+            "model8": {
                 "function_type": "prophet_reg",
                 "engine": "prophet",
                 "formula": "y ~ time"
+            },
+            "model9": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model10": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.25, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model11": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.5, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model12": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.75, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model13": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 1, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model14": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 1, penalty = 10",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour"
+            },
+            "model16": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_25 + lag_26 + lag_27 + lag_28 + lag_48"
+            },
+            "model17": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 0.5, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_25 + lag_26 + lag_27 + lag_28 + lag_48"
+            },
+            "model18": {
+                "function_type": "linear_reg",
+                "function_args": "mixture = 1, penalty = 1",
+                "engine": "glmnet",
+                "formula": "y ~ trend + month + wday + hour + lag_24 + lag_25 + lag_26 + lag_27 + lag_28 + lag_48+ lag_72"
             }
         }
     }
