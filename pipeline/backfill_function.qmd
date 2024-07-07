@@ -38,8 +38,8 @@ meta_json <- read_json(path = "../settings/settings.json")
 s <- meta_json$series
 series <- lapply(1:length(s), function(i) {
     subba_id <- NULL
+    # subba_id <- s[[i]]$subba_id
 
-    subba_id <- as.numeric(s[[i]]$subba_id)
     if (!is.na(as.numeric(s[[i]]$subba_id))) {
         subba_id <- as.numeric(s[[i]]$subba_id)
     } else {
@@ -102,7 +102,7 @@ end <- as.POSIXct(paste(
 attr(start, "tzone") <- "UTC"
 attr(end, "tzone") <- "UTC"
 
-offset <- 2200
+offset <- 2000
 
 eia_api_key <- Sys.getenv("EIA_API_KEY")
 ```
@@ -137,8 +137,19 @@ for (i in 1:nrow(series)) {
         facets = facets
     )
     index <- seq.POSIXt(from = start, to = end, by = "hour")
-    ts_obj <- data.frame(period = index) |>
-        left_join(temp, by = c("period" = "time"))
+    ts_obj <- data.frame(period = index, subba = series[i, "subba_id"]) |>
+        left_join(temp, by = c("period" = "time", "subba"))
+
+    # Impute missing values
+    nas <- which(is.na(ts_obj$value))
+
+    ts_obj$type <- ifelse(is.na(ts_obj$value), "impute", "actual")
+
+    for (l in nas) {
+        if (l > 48) {
+            ts_obj$value[l] <- (ts_obj$value[l - 24] + ts_obj$value[l - 48]) / 2
+        }
+    }
 
     meta_temp <- create_metadata(data = ts_obj, start = start, end = end, type = "backfill")
     meta_temp$index <- 1
