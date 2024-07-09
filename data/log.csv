@@ -19,7 +19,23 @@
 5,"CISO","SCE",2024-07-07 20:11:11.420869,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
 5,"CISO","SDGE",2024-07-07 20:11:11.421913,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
 5,"CISO","VEA",2024-07-07 20:11:11.422918,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
-6,"CISO","PGAE",2024-07-07 21:12:02.710085,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
-6,"CISO","SCE",2024-07-07 21:12:02.711568,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
-6,"CISO","SDGE",2024-07-07 21:12:02.712865,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
-6,"CISO","VEA",2024-07-07 21:12:02.713987,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
+6,"CISO","PGAE",2024-07-07 21:12:02.710085,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+6,"CISO","SCE",2024-07-07 21:12:02.711568,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+6,"CISO","SDGE",2024-07-07 21:12:02.712865,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+6,"CISO","VEA",2024-07-07 21:12:02.713987,2024-07-07 08:00:00,2024-07-07 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+7,"CISO","PGAE",2024-07-08 16:42:33.9332,2024-07-07 08:00:00,2024-07-08 07:00:00,2024-07-07 08:00:00,2024-07-08 07:00:00,TRUE,TRUE,24,0,"refresh",TRUE,TRUE,NA
+7,"CISO","SCE",2024-07-08 16:42:36.243579,2024-07-07 08:00:00,2024-07-08 07:00:00,2024-07-07 08:00:00,2024-07-08 07:00:00,TRUE,TRUE,24,0,"refresh",TRUE,TRUE,NA
+7,"CISO","SDGE",2024-07-08 16:42:38.087503,2024-07-07 08:00:00,2024-07-08 07:00:00,2024-07-07 08:00:00,2024-07-08 07:00:00,TRUE,TRUE,24,0,"refresh",TRUE,TRUE,NA
+7,"CISO","VEA",2024-07-08 16:42:40.123541,2024-07-07 08:00:00,2024-07-08 07:00:00,2024-07-07 08:00:00,2024-07-08 07:00:00,TRUE,TRUE,24,0,"refresh",TRUE,TRUE,NA
+8,"CISO","PGAE",2024-07-09 03:31:26.93836,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+8,"CISO","SCE",2024-07-09 03:31:26.939215,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+8,"CISO","SDGE",2024-07-09 03:31:26.939815,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+8,"CISO","VEA",2024-07-09 03:31:26.940365,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+9,"CISO","PGAE",2024-07-09 03:31:54.723735,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+9,"CISO","SCE",2024-07-09 03:31:54.724755,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+9,"CISO","SDGE",2024-07-09 03:31:54.725423,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+9,"CISO","VEA",2024-07-09 03:31:54.726073,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log;"
+10,"CISO","PGAE",2024-07-09 03:32:46.54045,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
+10,"CISO","SCE",2024-07-09 03:32:46.541495,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
+10,"CISO","SDGE",2024-07-09 03:32:46.542286,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
+10,"CISO","VEA",2024-07-09 03:32:46.542929,2024-07-08 08:00:00,2024-07-08 07:00:00,NA,NA,NA,NA,NA,NA,"refresh",FALSE,FALSE,"No new data is available; The data refresh failed, please check the log; "
