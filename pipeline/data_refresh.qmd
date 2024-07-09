@@ -181,6 +181,7 @@ p
 ## Refresh the forecast
 
 ```{r}
+fc <- NULL
 fc <- refresh_forecast(
     input = data,
     forecast_log_path = forecast_log_path,
@@ -195,19 +196,20 @@ fc <- refresh_forecast(
     save = TRUE
 )
 
-fc
 
 ```
 
 
 ```{r}
-plot_forecast(
-    input = data,
-    forecast = fc,
-    var = "value",
-    index = "period",
-    hours = 24 * 3
-)
-
+if (!is.null(fc)) {
+    head(fc)
+    plot_forecast(
+        input = data,
+        forecast = fc,
+        var = "value",
+        index = "period",
+        hours = 24 * 3
+    )
+}
 
 ```

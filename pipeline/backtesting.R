@@ -816,7 +816,7 @@ refresh_forecast <- function(
     lags,
     init = FALSE,
     save = FALSE) {
-    fc <- NULL
+    forecast <- NULL
     input <- input |>
         dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var)) |>
         add_trend(index = index) |>
