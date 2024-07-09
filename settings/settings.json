@@ -28,10 +28,10 @@
     "api_path": "electricity/rto/region-sub-ba-data/",
     "data_path": "../data/data.csv",
     "meta_path": "../data/log.csv",
-    "fc_meta_path": "../data/fc_log.csv",
-    "leaderboard_path": "../data/bkt_leader.csv",
+    "forecast_log_path": "../data/fc_log.csv",
+    "calibrated_models_path": "../data/calibrated_models.rds",
     "forecast_path": "../data/forecast.csv",
-    "forecast_log_path": "../data/forecast_log.csv",
+    "train_length": 18264,
     "start": {
         "year": 2018,
         "month": 7,
