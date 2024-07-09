@@ -10,6 +10,7 @@ format:
 ```{r}
 #| label: load-libraries
 #| warning: false
+library(modeltime)
 library(dplyr)
 library(EIAapi)
 library(jsonlite)
@@ -17,6 +18,7 @@ library(gt)
 library(plotly)
 library(lubridate)
 source("../pipeline/eia_data.R")
+source("../pipeline/backtesting.R")
 ```
 
 API Settings:
@@ -48,6 +50,13 @@ eia_api_key <- Sys.getenv("EIA_API_KEY")
 api_path <- meta_json$api_path
 meta_path <- meta_json$meta_path
 data_path <- meta_json$data_path
+forecast_path <- meta_json$forecast_path
+forecast_log_path <- meta_json$forecast_log_path
+calibrated_models_path <- meta_json$calibrated_models_path
+
+h <- meta_json$backtesting$h
+lags <- meta_json$backtesting$features$lags |> unlist()
+train_length <- meta_json$train_length
 ```
 
 ```{r}
@@ -159,9 +168,46 @@ data <- readr::read_csv(file = data_path, col_types = readr::cols(
     parent_name = readr::col_character(),
     value = readr::col_double(),
     value_units = readr::col_character()
-))
+)) |>
+    add_trend(index = "period") |>
+    add_seasonal(index = "period")
+
 
 p <- plot_ly(data, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
 
 p
+```
+
+## Refresh the forecast
+
+```{r}
+fc <- refresh_forecast(
+    input = data,
+    forecast_log_path = forecast_log_path,
+    forecast_path = forecast_path,
+    calibrated_models_path = calibrated_models_path,
+    h = h,
+    index = "period",
+    var = "value",
+    train_length = 24 * 31 * 25,
+    lags = lags,
+    init = FALSE,
+    save = TRUE
+)
+
+fc
+
+```
+
+
+```{r}
+plot_forecast(
+    input = data,
+    forecast = fc,
+    var = "value",
+    index = "period",
+    hours = 24 * 3
+)
+
+
 ```

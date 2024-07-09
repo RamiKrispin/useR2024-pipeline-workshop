@@ -35,6 +35,9 @@ series <- lapply(1:length(s), function(i) {
 
 meta_path <- meta_json$meta_path
 data_path <- meta_json$data_path
+forecast_path <- meta_json$forecast_path
+forecast_log_path <- meta_json$fc_log_path
+calibrated_models_path <- meta_json$calibrated_models_path
 
 
 methods <- meta_json$backtesting$models
@@ -50,6 +53,7 @@ overlap <- meta_json$backtesting$overlap
 cores <- meta_json$backtesting$cores
 h <- meta_json$backtesting$h
 lags <- meta_json$backtesting$features$lags |> unlist()
+train_length <- meta_json$train_length
 ```
 
 
@@ -121,7 +125,7 @@ selected_models
 ```
 
 ```{r}
-saveRDS(object = selected_models, file = "../data/calibrated_models.rds")
+saveRDS(object = selected_models, file = calibrated_models_path)
 ```
 ## Create Forecast
 
@@ -141,4 +145,28 @@ head(forecast)
 
 ```{r}
 plot_forecast(input = input, forecast = forecast, hours = 24 * 3)
+```
+
+
+```{r}
+log <- create_forecast_log(
+    forecast = forecast,
+    forecast_log_path = forecast_log_path,
+    h = h,
+    init = TRUE,
+    save = TRUE)
+
+gt::gt(log)
+```
+
+```{r}
+subba_success <- log$subba[which(log$success)]
+
+
+if (length(subba_success) > 0) {
+    forecast_save <- forecast |> dplyr::filter(subba %in% subba_success)
+    save_forecast(forecast = forecast_save, forecast_path = forecast_path, init = TRUE, save = TRUE)
+    
+}
+
 ```

@@ -271,6 +271,8 @@ create_forecast <- function(
     m <- method
     new_data <- create_future_frame(input = input, index = index, h = h)
 
+    input$y <- input[[var]]
+
     if (!is.null(lags)) {
         input <- input |> add_lags(index = index, var = var, lags = lags)
         new_data <- add_lags_forecast(
@@ -303,6 +305,7 @@ create_forecast <- function(
 #' @param index The input data index column name
 #' @param var The input numeric column name
 #' @param lags The lag position values
+#' @param train_length The length of the input training series for the refit function
 #' @return A data.frame object with the forecast
 
 create_forecast_subba <- function(
@@ -317,6 +320,7 @@ create_forecast_subba <- function(
     fc <- lapply(seq_along(subba_list), function(i) {
         m <- selected_models |> dplyr::filter(subba == subba_list[i])
         method <- m$method[1]
+
         d <- input |> dplyr::filter(subba == subba_list[i])
 
         fc_subba <- create_forecast(
@@ -324,14 +328,21 @@ create_forecast_subba <- function(
             calibrated_models = m,
             method = method,
             h = h,
-            index = "time",
-            var = "y",
+            index = index,
+            var = var,
             lags = lags
         ) |>
             dplyr::select(time = .index, subba, method, model = .model_desc, yhat = .value, lower = .conf_lo, upper = .conf_hi)
-
+        fc_subba$forecast_label <- as.character(as.Date(min(fc_subba$time)))
         return(fc_subba)
     }) |> dplyr::bind_rows()
+
+    attr(fc, "h") <- h
+    attr(fc, "var") <- var
+    attr(fc, "index") <- index
+    attr(fc, "lags") <- lags
+    attr(fc, "subba") <- subba_list
+
 
     return(fc)
 }
@@ -542,20 +553,22 @@ get_selected_models <- function(bkt) {
 #' @param input The input time series data in a data.frame format
 #' @param forecast The forecast object
 #' @param hours The number of hours to display actual observations
+#' @param var The input numeric column name
 #' @return A Plotly subplot object
 
-plot_forecast <- function(input, forecast, hours) {
+plot_forecast <- function(input, forecast, hours, index, var) {
     subba_list <- unique(input$subba)
 
     start_time <- min((input |> dplyr::group_by(subba) |>
-        dplyr::filter(time == max(time)))$time) - lubridate::hours(hours)
+        dplyr::filter(!!rlang::sym(index) == max(!!rlang::sym(index))))[[index]]) - lubridate::hours(hours)
+
 
 
 
     p <- lapply(seq_along(subba_list), function(i) {
         d <- input |>
             dplyr::filter(
-                time > start_time,
+                !!rlang::sym(index) > start_time,
                 subba == subba_list[i]
             )
 
@@ -574,8 +587,8 @@ plot_forecast <- function(input, forecast, hours) {
                 showlegend = FALSE
             ) |>
             plotly::add_lines(
-                x = d$time,
-                y = d$y,
+                x = d[[index]],
+                y = d[[var]],
                 name = subba_list[i],
                 showlegend = FALSE,
                 line = list(color = "#1f77b4")
@@ -602,4 +615,286 @@ plot_forecast <- function(input, forecast, hours) {
     p_sub <- plotly::subplot(p, nrows = ceiling(length(p) / 2), shareX = TRUE)
 
     return(p_sub)
+}
+
+
+#' Log Template
+#' @description The function returns the log template - an empty data.frame with the logs columns
+#' @return A data.frame object
+
+log_frame <- function() {
+    log <- data.frame(
+        index = integer(),
+        subba = character(),
+        model = character(),
+        time = POSIXct(),
+        forecast_label = character(),
+        start = POSIXct(),
+        end = POSIXct(),
+        h = integer(),
+        n_obs = integer(),
+        n_obs_flag = logical(),
+        na_flag = logical(),
+        success = logical(),
+        score = logical(),
+        mape = double(),
+        rmse = double(),
+        coverage = double()
+    )
+
+    return(log)
+}
+
+
+#' Log the Forecast Metadata
+#' @description  The function creates log for each forecast, append and save it locally
+#' @param forecast A forecast object
+#' @param forecast_log_path The forecast log file path and name
+#' @param h The forecast horizon
+#' @param init Initialize the forecast file (overwrite previous file if exists) when sets to TRUE,
+#' by default set to FALSE
+#' @param save Saves the log results if sets to TRUE, by default sets to FALSE
+#' @return A data.frame object with the log output
+create_forecast_log <- function(
+    forecast,
+    forecast_log_path,
+    h,
+    init = FALSE,
+    save = FALSE) {
+    if (init) {
+        index <- 1
+        log <- log_frame()
+    } else {
+        log <- load_forecast_log(forecast_log_path = forecast_log_path)
+
+        index <- max(log$index) + 1
+    }
+
+    fc_attr <- attributes(forecast)
+
+    subba <- fc_attr$subba
+
+    for (i in subba) {
+        log_temp <- f <- NULL
+
+        f <- forecast |> dplyr::filter(subba == i)
+
+        log_temp <- data.frame(
+            index = index,
+            subba = i,
+            model = unique(f$model),
+            method = unique(f$method),
+            time = Sys.time(),
+            forecast_label = unique(f$forecast_label),
+            start = min(f$time),
+            end = max(f$time),
+            h = fc_attr$h,
+            n_obs = nrow(f),
+            n_obs_flag = ifelse(fc_attr$h == nrow(f), TRUE, FALSE),
+            na_flag = any(is.na(f$yhat)),
+            success = FALSE,
+            score = FALSE,
+            mape = NA,
+            rmse = NA,
+            coverage = NA
+        )
+
+        log_temp$success[1] <- ifelse(log_temp$n_obs_flag[1] & !log_temp$na_flag[1], TRUE, FALSE)
+
+
+        log <- rbind(log, log_temp)
+
+        index <- index + 1
+    }
+
+    if (save) {
+        write.csv(log, forecast_log_path, row.names = FALSE)
+    }
+
+    invisible(log)
+}
+
+
+
+#' Save Forecast
+#' @description The function append new forecast to the forecast archive file
+#' @param forecast A forecast object
+#' @param forecast_path The forecast file path and name
+#' @param init Initialize the forecast file (overwrite previous file if exists) when sets to TRUE,
+#' by default set to FALSE
+#' @param save Saves the log results if sets to TRUE, by default sets to FALSE
+save_forecast <- function(
+    forecast,
+    forecast_path,
+    init = FALSE,
+    save = FALSE) {
+    if (!init) {
+        message("Load archive forecast and append new forecast")
+        forecast_archive <- read.csv(forecast_path) |>
+            dplyr::mutate(time = as.POSIXct(time))
+
+        f <- rbind(forecast_archive, forecast)
+    } else {
+        message("Initialize the forecast file")
+        f <- forecast
+    }
+
+    if (save) {
+        message(paste("Save the forecast to ", forecast_path, sep = ""))
+        write.csv(f, forecast_path, row.names = FALSE)
+    }
+}
+
+
+#' Load the Forecast Log
+#' @description The function load the forecast log
+#' @param forecast_log_path The forecast log file path and name
+#' @return A data.frame object
+
+load_forecast_log <- function(forecast_log_path) {
+    log <- read.csv(forecast_log_path) |>
+        dplyr::mutate(
+            time = as.POSIXct(time),
+            start = as.POSIXct(start),
+            end = as.POSIXct(end)
+        )
+
+    return(log)
+}
+
+
+#' Add Trend Feature
+#' @description The function adds trend feature to a time series object
+#' @param input The input time series data in a data.frame format
+#' @param index The input data index column name
+#' @return The input object with a trend column
+
+add_trend <- function(input, index) {
+    input$trend <- as.numeric(input[[index]])
+    return(input)
+}
+#' Add Seasonal Features
+#' @description The function adds trend feature to a time series object
+#' @param input The input time series data in a data.frame format
+#' @param index The input data index column name
+#' @return The input object with a trend column
+
+add_seasonal <- function(input, index) {
+    input$month <- factor(lubridate::month(input[[index]], label = TRUE), ordered = FALSE)
+    input$wday <- factor(lubridate::wday(input[[index]], label = TRUE), ordered = FALSE)
+    input$hour <- factor(lubridate::hour(input[[index]]), order = FALSE)
+
+    return(input)
+}
+
+#' Refresh the Forecast
+#' @description The function checks if new data points are available and refresh the forecast
+#' based on condition
+#' @param input The input time series data in a data.frame format
+#' @param forecast_log_path The forecast log file path and name
+#' @param forecast_path The forecast file path and name
+#' @param calibrated_models_path The calibrated models path
+#' @param h The forecast horizon
+#' @param index The input data index column name
+#' @param var The input numeric column name
+#' @param train_length The length of the input training series for the refit function
+#' @param lags The lag position values
+#' @param init Initialize the forecast file (overwrite previous file if exists) when sets to TRUE,
+#' by default set to FALSE
+#' @param save Saves the log results if sets to TRUE, by default sets to FALSE
+#' @return A forecast object, if meet the refresh condition
+
+refresh_forecast <- function(
+    input,
+    forecast_log_path,
+    forecast_path,
+    calibrated_models_path,
+    h,
+    index,
+    var,
+    train_length = 24 * 31 * 25,
+    lags,
+    init = FALSE,
+    save = FALSE) {
+    fc <- NULL
+    input <- input |>
+        dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var)) |>
+        add_trend(index = index) |>
+        add_seasonal(index = index)
+
+    input_last_point <- input |>
+        dplyr::group_by(subba) |>
+        dplyr::filter(!!rlang::sym(index) == max(!!rlang::sym(index))) |>
+        dplyr::ungroup() |>
+        dplyr::select(subba, last_time = !!rlang::sym(index))
+
+    log <- load_forecast_log(forecast_log_path = forecast_log_path)
+
+    calibrated_models <- readRDS(calibrated_models_path) |>
+        dplyr::left_join(
+            log |>
+                dplyr::filter(success) |>
+                dplyr::group_by(subba) |>
+                dplyr::filter(end == max(end)) |>
+                dplyr::select(subba, method, end),
+            by = c("subba", "method")
+        ) |>
+        dplyr::left_join(input_last_point, by = "subba") |>
+        dplyr::mutate(refresh = ifelse(last_time > end, TRUE, FALSE))
+
+
+    if (!any(calibrated_models$refresh)) {
+        message("No new data is available to refresh the forecast")
+    } else {
+        message("New data is avaiable, starting the forecast refresh process")
+        calibrated_models <- calibrated_models |> dplyr::filter(refresh == TRUE)
+
+        for (i in 1:nrow(calibrated_models)) {
+            end <- calibrated_models$end[i]
+            start <- end - lubridate::hours(train_length)
+
+
+            temp <- input |>
+                dplyr::filter(
+                    subba == calibrated_models$subba[i],
+                    !!rlang::sym(index) >= start & !!rlang::sym(index) <= end
+                )
+            if (i == 1) {
+                d <- temp
+            } else {
+                d <- rbind(d, temp)
+            }
+        }
+
+
+
+        forecast <- create_forecast_subba(
+            input = d,
+            selected_models = calibrated_models,
+            h = h,
+            index = index,
+            var = "y",
+            lags = lags
+        )
+
+        create_forecast_log(
+            forecast = forecast,
+            forecast_log_path = forecast_log_path,
+            h = h,
+            init = init,
+            save = save
+        )
+
+        subba_success <- log$subba[which(log$success)]
+
+
+        if (length(subba_success) > 0) {
+            forecast_save <- forecast |> dplyr::filter(subba %in% subba_success)
+            save_forecast(forecast = forecast_save, forecast_path = forecast_path, init = init, save = save)
+        }
+    }
+
+    if (!is.null(forecast)) {
+        return(forecast)
+    }
 }
