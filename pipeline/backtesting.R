@@ -763,6 +763,20 @@ load_forecast_log <- function(forecast_log_path) {
 }
 
 
+#' Load the Forecast Log
+#' @description The function load the forecast log
+#' @param forecast_path The forecast file path and name
+#' @return A data.frame object
+
+load_forecast <- function(forecast_path) {
+    forecast <- read.csv(forecast_path) |>
+        dplyr::mutate(
+            time = as.POSIXct(time)
+        )
+
+    return(forecast)
+}
+
 #' Add Trend Feature
 #' @description The function adds trend feature to a time series object
 #' @param input The input time series data in a data.frame format
@@ -877,7 +891,7 @@ refresh_forecast <- function(
             lags = lags
         )
 
-        create_forecast_log(
+        log <- create_forecast_log(
             forecast = forecast,
             forecast_log_path = forecast_log_path,
             h = h,

@@ -8,13 +8,16 @@ format: dashboard
 library(dplyr)
 library(plotly)
 library(jsonlite)
-
+source("../pipeline/backtesting.R")
 ```
 
 ```{r}
 meta_json <- read_json(path = "../settings/settings.json")
 meta_path <- meta_json$meta_path
 data_path <- meta_json$data_path
+forecast_path <- meta_json$forecast_path
+forecast_log_path <- meta_json$forecast_log_path
+
 
 data <- readr::read_csv(file = data_path, col_types = readr::cols(
     period = readr::col_datetime(format = ""),
@@ -25,6 +28,30 @@ data <- readr::read_csv(file = data_path, col_types = readr::cols(
     value = readr::col_double(),
     value_units = readr::col_character()
 ))
+
+
+forecast_log <- load_forecast_log(forecast_log_path = forecast_log_path) |>
+    dplyr::filter(success) |>
+    dplyr::filter(start == max(start))
+
+
+
+
+forecast <- load_forecast(forecast_path = forecast_path)
+
+for (i in 1:nrow(forecast_log)) {
+    temp <- forecast |>
+        dplyr::filter(subba == forecast_log$subba[i], forecast_label == forecast_log$forecast_label[i])
+
+    if (i == 1) {
+        fc <- temp
+    } else {
+        fc <- rbind(fc, temp)
+    }
+}
+
+
+
 
 ```
 
@@ -38,14 +65,7 @@ data <- readr::read_csv(file = data_path, col_types = readr::cols(
 #| title: Hourly Demand By Provider
 
 
-p <- plot_ly(
-    data = data,
-    x = ~period,
-    y = ~value,
-    color = ~subba,
-    type = "scatter",
-    mode = "lines"
-)
+p <- plot_forecast(input = data, forecast = fc, hours = 24 * 3, index = "period", var = "value")
 
 p
 ```
