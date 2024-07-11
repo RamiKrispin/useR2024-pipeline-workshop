@@ -795,7 +795,8 @@ load_forecast_log <- function(forecast_log_path) {
 load_forecast <- function(forecast_path) {
     forecast <- read.csv(forecast_path) |>
         dplyr::mutate(
-            time = as.POSIXct(time)
+            time_str = ifelse(nchar(time) == 10, paste(time, "00:00:00", sep = " "), time),
+            time = lubridate::ymd_hms(time_str)
         )
 
     return(forecast)
