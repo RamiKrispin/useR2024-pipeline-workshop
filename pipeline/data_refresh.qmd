@@ -180,6 +180,7 @@ p
 ## Refresh the forecast
 
 ```{r}
+#| label: forecast refresh
 fc <- NULL
 fc <- refresh_forecast(
     input = data,
@@ -202,6 +203,7 @@ fc <- refresh_forecast(
 
 
 ```{r}
+#| label: plot the forecast
 if (!is.null(fc)) {
     head(fc)
     plot_forecast(
@@ -219,7 +221,48 @@ if (!is.null(fc)) {
 ## Score the Forecast
 
 ```{r}
+#| label: score the forecast
+fc_log <- load_forecast_log(forecast_log_path = forecast_log_path)
 
+score_rows <- which(!fc_log$score)
+
+
+if (length(score_rows) == 0) {
+    message("All models were scored ")
+} else {
+    subba <- unique(fc_log$subba[score_rows])
+
+    fc <- load_forecast(forecast_path = forecast_path)
+
+    for (i in subba) {
+        print(i)
+        d <- data |> dplyr::filter(subba == i)
+
+        r <- which(fc_log$subba == i & !fc_log$score)
+
+        for (l in r) {
+            f <- fc |>
+                dplyr::filter(forecast_label == fc_log$forecast_label[l], subba == i) |>
+                dplyr::left_join(d |> dplyr::select(time = period, subba, value), by = c("time", "subba")) |>
+                dplyr::filter(!is.na(value))
+
+
+            fc_log$mape[l] <- mean(abs(f$value - f$yhat) / f$value)
+
+            fc_log$rmse[l] <- (mean((f$value - f$yhat)^2))^0.5
+
+            fc_log$coverage[l] <- length(which(f$value <= f$upper & f$value >= f$lower)) / nrow(f)
+
+            if (nrow(f) == fc_log$h[l]) {
+                fc_log$score[l] <- TRUE
+            }
+
+            write.csv(fc_log, forecast_log_path, row.names = FALSE)
+        }
+    }
+
+    gt::gt(fc_log[score_rows, ])
+}
 
 
 ```
