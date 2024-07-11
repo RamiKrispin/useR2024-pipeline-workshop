@@ -73,13 +73,13 @@ p
 ```
 
 ```{r}
-#| title: Data Metadata
+#| title: Data Log
 gt::gt(log)
 ```
 
 
 
 ```{r}
-#| title: Forecast Metadata
+#| title: Forecast Log
 gt::gt(forecast_log)
 ```
