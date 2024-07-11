@@ -892,7 +892,7 @@ refresh_forecast <- function(
         ) |>
         dplyr::left_join(input_last_point, by = "subba") |>
         dplyr::mutate(end_filter = lubridate::floor_date(last_time, unit = "day") - lubridate::hours(1)) |>
-        dplyr::mutate(refresh = ifelse(end_filter > end, TRUE, FALSE))
+        dplyr::mutate(refresh = ifelse(end_filter < last_time, TRUE, FALSE))
 
 
     if (!any(calibrated_models$refresh)) {
