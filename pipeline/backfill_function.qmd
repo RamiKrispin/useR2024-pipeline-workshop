@@ -28,7 +28,9 @@ library(EIAapi)
 library(jsonlite)
 library(gt)
 library(plotly)
+library(modeltime)
 source("../pipeline/eia_data.R")
+source("../pipeline/backtesting.R")
 ```
 
 
@@ -58,6 +60,12 @@ series <- lapply(1:length(s), function(i) {
 api_path <- meta_json$api_path
 meta_path <- meta_json$meta_path
 data_path <- meta_json$data_path
+forecast_path <- meta_json$forecast_path
+forecast_log_path <- meta_json$forecast_log_path
+calibrated_models_path <- meta_json$calibrated_models_path
+h <- meta_json$backtesting$h
+lags <- meta_json$backtesting$features$lags |> unlist()
+train_length <- meta_json$train_length
 ```
 
 
@@ -185,11 +193,52 @@ m <- append_metadata(meta_path = meta_path, new_meta = meta, init = TRUE, save =
 We will use Plotly to visualize the series:
 
 ```{r}
-d <- data |> arrange(subba, period)
+
+end <- lubridate::floor_date((max(data$period)), unit = "day")
+d <- data |>
+    arrange(subba, period) |>
+    dplyr::filter(period < end)
 
 d$subba <- as.character(d$subba)
 
 p <- plot_ly(d, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
 
 p
+```
+
+
+## Create an Inital Forecast
+
+```{r}
+head(d)
+
+fc <- NULL
+calibrated_models <- readRDS(calibrated_models_path)
+fc <- create_forecast_subba(
+    input = d,
+    selected_models = calibrated_models,
+    h = h,
+    index = "period",
+    var = "value",
+    lags = lags,
+    seasonal = TRUE,
+    trend = TRUE
+)
+
+if (!is.null(fc)) {
+    create_forecast_log(forecast = fc, forecast_log_path = forecast_log_path, h = h, init = TRUE, save = TRUE)
+
+    save_forecast(forecast = fc, forecast_path = forecast_path, init = TRUE, save = TRUE)
+
+    p <- plot_forecast(
+        input = d,
+        forecast = fc,
+        hours = 24 * 4,
+        index = "period",
+        var = "value"
+    )
+
+    p
+}
+
 ```

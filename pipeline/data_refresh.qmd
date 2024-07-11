@@ -17,6 +17,7 @@ library(jsonlite)
 library(gt)
 library(plotly)
 library(lubridate)
+library(modeltime)
 source("../pipeline/eia_data.R")
 source("../pipeline/backtesting.R")
 ```
@@ -168,9 +169,7 @@ data <- readr::read_csv(file = data_path, col_types = readr::cols(
     parent_name = readr::col_character(),
     value = readr::col_double(),
     value_units = readr::col_character()
-)) |>
-    add_trend(index = "period") |>
-    add_seasonal(index = "period")
+))
 
 
 p <- plot_ly(data, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
@@ -193,7 +192,9 @@ fc <- refresh_forecast(
     train_length = 24 * 31 * 25,
     lags = lags,
     init = FALSE,
-    save = TRUE
+    save = TRUE,
+    seasonal = TRUE,
+    trend = TRUE
 )
 
 

@@ -258,6 +258,10 @@ create_future_frame <- function(input, index, h) {
 #' @param forecast The forecast or testing data.frame object
 #' @param index The input data index column name
 #' @param var The input numeric column name
+#' @param seasonal A boolean, if set to TRUE (default) will add seasonal
+#' features to the input and new_data objects
+#' @param trend A boolean, if set to TRUE (default) will add trend
+#' feature to the input and new_data objects
 #' @return A data.frame object with the forecast
 create_forecast <- function(
     input,
@@ -266,7 +270,9 @@ create_forecast <- function(
     h,
     index,
     var,
-    lags) {
+    lags,
+    seasonal = TRUE,
+    trend = TRUE) {
     p <- max(calibrated_models$partition)
     m <- method
     new_data <- create_future_frame(input = input, index = index, h = h)
@@ -282,6 +288,16 @@ create_forecast <- function(
             var = var,
             lags = lags
         )
+    }
+
+    if (seasonal) {
+        input <- add_seasonal(input = input, index = index)
+        new_data <- add_seasonal(input = new_data, index = index)
+    }
+
+    if (trend) {
+        input <- add_trend(input = input, index = index)
+        new_data <- add_trend(input = new_data, index = index)
     }
     refit <- calibrated_models |>
         dplyr::filter(partition == p) |>
@@ -306,6 +322,10 @@ create_forecast <- function(
 #' @param var The input numeric column name
 #' @param lags The lag position values
 #' @param train_length The length of the input training series for the refit function
+#' @param seasonal A boolean, if set to TRUE (default) will add seasonal
+#' features to the input and new_data objects
+#' @param trend A boolean, if set to TRUE (default) will add trend
+#' feature to the input and new_data objects
 #' @return A data.frame object with the forecast
 
 create_forecast_subba <- function(
@@ -314,7 +334,9 @@ create_forecast_subba <- function(
     h,
     index,
     var,
-    lags) {
+    lags,
+    seasonal = TRUE,
+    trend = TRUE) {
     subba_list <- unique(input$subba)
 
     fc <- lapply(seq_along(subba_list), function(i) {
@@ -330,7 +352,9 @@ create_forecast_subba <- function(
             h = h,
             index = index,
             var = var,
-            lags = lags
+            lags = lags,
+            seasonal = seasonal,
+            trend = trend
         ) |>
             dplyr::select(time = .index, subba, method, model = .model_desc, yhat = .value, lower = .conf_lo, upper = .conf_hi)
         fc_subba$forecast_label <- as.character(as.Date(min(fc_subba$time)))
@@ -627,10 +651,10 @@ log_frame <- function() {
         index = integer(),
         subba = character(),
         model = character(),
-        time = POSIXct(),
+        time = as.POSIXct(character()),
         forecast_label = character(),
-        start = POSIXct(),
-        end = POSIXct(),
+        start = as.POSIXct(character()),
+        end = as.POSIXct(character()),
         h = integer(),
         n_obs = integer(),
         n_obs_flag = logical(),
@@ -829,18 +853,19 @@ refresh_forecast <- function(
     train_length = 24 * 31 * 25,
     lags,
     init = FALSE,
-    save = FALSE) {
+    save = FALSE,
+    seasonal = TRUE,
+    trend = TRUE) {
     forecast <- NULL
     input <- input |>
-        dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var)) |>
-        add_trend(index = index) |>
-        add_seasonal(index = index)
+        dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var))
 
     input_last_point <- input |>
         dplyr::group_by(subba) |>
         dplyr::filter(!!rlang::sym(index) == max(!!rlang::sym(index))) |>
         dplyr::ungroup() |>
         dplyr::select(subba, last_time = !!rlang::sym(index))
+
 
     log <- load_forecast_log(forecast_log_path = forecast_log_path)
 
@@ -854,7 +879,8 @@ refresh_forecast <- function(
             by = c("subba", "method")
         ) |>
         dplyr::left_join(input_last_point, by = "subba") |>
-        dplyr::mutate(refresh = ifelse(last_time > end, TRUE, FALSE))
+        dplyr::mutate(end_filter = lubridate::floor_date(last_time, unit = "day") - lubridate::hours(1)) |>
+        dplyr::mutate(refresh = ifelse(end_filter > end, TRUE, FALSE))
 
 
     if (!any(calibrated_models$refresh)) {
@@ -864,7 +890,7 @@ refresh_forecast <- function(
         calibrated_models <- calibrated_models |> dplyr::filter(refresh == TRUE)
 
         for (i in 1:nrow(calibrated_models)) {
-            end <- calibrated_models$end[i]
+            end <- calibrated_models$end_filter[i]
             start <- end - lubridate::hours(train_length)
 
 
@@ -888,7 +914,9 @@ refresh_forecast <- function(
             h = h,
             index = index,
             var = "y",
-            lags = lags
+            lags = lags,
+            seasonal = TRUE,
+            trend = TRUE
         )
 
         log <- create_forecast_log(
@@ -911,4 +939,157 @@ refresh_forecast <- function(
     if (!is.null(forecast)) {
         return(forecast)
     }
+}
+
+
+
+#' Pull Input Data from Snowflake
+#' @description The function enables to pull input data from Snowflake and reformat it into a tsibble object
+#' @param con Snowflake connection object
+#' @param database The Snowflake database name
+#' @param schema The Snowflake schema name
+#' @param table The Snowflake table name
+#' @param product The product name
+#' @param itune_org The iTune Org name
+#' @param start Optional, enables to filter the input data starting date (greater or equal to the start date)
+#' @param end Optional, enables to filter the input data ending date (greater or equal to the end date)
+#' @param index The column name of the series timestamp, by default using the date of the first day of the fiscal week
+#' @param y The column name of the series numeric value, by default using the local currency column
+#' @return A tsibble object with the following columns - date (Date class), index (yearweek class), and y (numeric class)
+#' @export
+
+pull_input <- function(
+    con,
+    table,
+    database,
+    schema,
+    product,
+    itune_org,
+    start = NULL,
+    end = NULL,
+    index = "STD_WEEK_BEGIN_DT",
+    y = "AMOUNT_LC") {
+    # Check the function arguments
+    check_con(obj = con)
+    check_string(obj = table)
+    check_string(obj = database)
+    check_string(obj = schema)
+    check_string(obj = product)
+    check_string(obj = itune_org)
+    check_string(obj = index)
+    check_string(obj = y)
+
+
+    query <- sprintf(
+        'SELECT * FROM "%s"."%s"."%s" WHERE "FORECAST_PRODUCT" = \'%s\' AND "ITUNES_PLANNING_ORG" = \'%s\'',
+        database,
+        schema,
+        actual_table,
+        product,
+        itune_org
+    )
+    if (is.null(start) && is.null(end)) {
+        query <- sprintf("%s;", query)
+    } else if (!is.null(start) && !is.null(end)) {
+        query <- sprintf('%s AND "%s" >= \'%s\' AND "%s" <= \'%s\';', query, index, start, index, end)
+    } else if (is.null(start) && !is.null(end)) {
+        query <- sprintf('%s AND "%s" <= \'%s\';', query, index, end)
+    } else if (!is.null(start) && is.null(end)) {
+        query <- sprintf('%s AND "%s" >= \'%s\';', query, index, start)
+    }
+
+    df <- NULL
+
+    tryCatch(
+        expr = {
+            df <- DBI::dbGetQuery(conn = con, statement = query)
+        },
+        error = function(e) {
+            message("Error with the pull_input function")
+        }
+    )
+    if (is.null(df)) {
+        stop("Failed to pull the table from Snowflake, please check your connection settings")
+    }
+
+    df$date <- as.Date(df[[index]])
+
+
+    ts <- df[, c("date", y)]
+    names(ts) <- c("date", "y")
+
+    ts$index <- tsibble::yearweek(ts$date)
+
+    ts <- ts[, c("date", "index", "y")]
+
+    ts <- tsibble::as_tsibble(ts, index = "index")
+
+
+    return(ts)
+}
+
+
+#' Pull Input Data from Snowflake
+#' @description The function enables to pull input data from Snowflake and reformat it into a tsibble object
+#' @param con Snowflake connection object
+#' @param database The Snowflake database name
+#' @param schema The Snowflake schema name
+#' @param table The Snowflake table name
+#' @param product The product name
+#' @param itune_org The iTune Org name
+#' @param events Optional, a character vector with events names to filter, if set to NULL (default) will return all events
+#' @return The events table
+#' @export
+
+pull_events <- function(
+    con,
+    table,
+    database,
+    schema,
+    product,
+    itune_org,
+    events = NULL) {
+    # Check the function arguments
+    check_con(obj = con)
+    check_string(obj = database)
+    check_string(obj = schema)
+    check_string(obj = table)
+    check_string(obj = product)
+    check_string(obj = itune_org)
+
+    query <- sprintf(
+        'SELECT * FROM "%s"."%s"."%s" WHERE "product" = \'%s\' AND "itunes_planning_org" = \'%s\'',
+        database,
+        schema,
+        table,
+        product,
+        itune_org
+    )
+
+    if (is.null(events)) {
+        query <- sprintf("%s;", query)
+    } else {
+        e <- add_brackets((events))
+        query <- sprintf('%s AND "event_name" in %s;', query, e)
+    }
+
+    tryCatch(
+        expr = {
+            df <- DBI::dbGetQuery(conn = con, statement = query)
+        },
+        error = function(e) {
+            message("Error with the pull_events function")
+        }
+    )
+    if (is.null(df)) {
+        stop("Failed to pull the events table, please check your Snowflake settings")
+    }
+
+
+    df <- df |>
+        dplyr::select(date = index, dplyr::everything()) |>
+        dplyr::mutate(index = tsibble::yearweek(date)) |>
+        dplyr::select(date, index, event_name, type, itunes_planning_org, product)
+
+    return(df)
 }
