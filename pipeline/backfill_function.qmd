@@ -66,6 +66,8 @@ calibrated_models_path <- meta_json$calibrated_models_path
 h <- meta_json$backtesting$h
 lags <- meta_json$backtesting$features$lags |> unlist()
 train_length <- meta_json$train_length
+offset <- meta_json$offset
+tz <- meta_json$timezone
 ```
 
 
@@ -103,14 +105,8 @@ end <- as.POSIXct(paste(
     sep = ""
 ))
 
-
-# start <- as.POSIXct("2024-05-18 08:00:00")
-
-# end <- as.POSIXct("2024-06-01 01:00:00")
-attr(start, "tzone") <- "UTC"
-attr(end, "tzone") <- "UTC"
-
-offset <- 2000
+attr(start, "tzone") <- tz
+attr(end, "tzone") <- tz
 
 eia_api_key <- Sys.getenv("EIA_API_KEY")
 ```

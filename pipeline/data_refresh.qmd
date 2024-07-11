@@ -44,8 +44,6 @@ facets_template <- list(
     subba = NULL
 )
 
-offset <- 2250
-
 eia_api_key <- Sys.getenv("EIA_API_KEY")
 
 api_path <- meta_json$api_path
@@ -58,6 +56,8 @@ calibrated_models_path <- meta_json$calibrated_models_path
 h <- meta_json$backtesting$h
 lags <- meta_json$backtesting$features$lags |> unlist()
 train_length <- meta_json$train_length
+offset <- meta_json$offset
+tz <- meta_json$timezone
 ```
 
 ```{r}
@@ -212,5 +212,14 @@ if (!is.null(fc)) {
         hours = 24 * 3
     )
 }
+
+```
+
+
+## Score the Forecast
+
+```{r}
+
+
 
 ```

@@ -32,6 +32,8 @@
     "calibrated_models_path": "../data/calibrated_models.rds",
     "forecast_path": "../data/forecast.csv",
     "train_length": 18264,
+    "offset": 2200,
+    "timezone": "UTC",
     "start": {
         "year": 2018,
         "month": 7,
