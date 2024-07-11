@@ -18,7 +18,8 @@ data_path <- meta_json$data_path
 forecast_path <- meta_json$forecast_path
 forecast_log_path <- meta_json$forecast_log_path
 
-
+log <- readr::read_csv(file = meta_path)
+last_update <- as.character(max(log$end_act))
 data <- readr::read_csv(file = data_path, col_types = readr::cols(
     period = readr::col_datetime(format = ""),
     subba = readr::col_character(),
@@ -58,8 +59,7 @@ for (i in 1:nrow(forecast_log)) {
 
 
 
-
-## row
+## row {.tabset}
 
 ```{r}
 #| title: Hourly Demand By Provider
@@ -68,4 +68,16 @@ for (i in 1:nrow(forecast_log)) {
 p <- plot_forecast(input = data, forecast = fc, hours = 24 * 3, index = "period", var = "value")
 
 p
+```
+
+```{r}
+#| title: Data Metadata
+gt::gt(log)
+```
+
+
+
+```{r}
+#| title: Forecast Metadata
+gt::gt(forecast_log)
 ```
