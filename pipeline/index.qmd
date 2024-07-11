@@ -31,7 +31,9 @@ data <- readr::read_csv(file = data_path, col_types = readr::cols(
 ))
 
 
-forecast_log <- load_forecast_log(forecast_log_path = forecast_log_path) |>
+forecast_log <- load_forecast_log(forecast_log_path = forecast_log_path)
+
+forecast_log_sub <- forecast_log |>
     dplyr::filter(success) |>
     dplyr::filter(start == max(start))
 
@@ -40,9 +42,9 @@ forecast_log <- load_forecast_log(forecast_log_path = forecast_log_path) |>
 
 forecast <- load_forecast(forecast_path = forecast_path)
 
-for (i in 1:nrow(forecast_log)) {
+for (i in 1:nrow(forecast_log_sub)) {
     temp <- forecast |>
-        dplyr::filter(subba == forecast_log$subba[i], forecast_label == forecast_log$forecast_label[i])
+        dplyr::filter(subba == forecast_log_sub$subba[i], forecast_label == forecast_log_sub$forecast_label[i])
 
     if (i == 1) {
         fc <- temp
