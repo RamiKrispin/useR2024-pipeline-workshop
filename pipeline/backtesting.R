@@ -697,7 +697,7 @@ create_forecast_log <- function(
     fc_attr <- attributes(forecast)
 
     subba <- fc_attr$subba
-
+    log_new <- NULL
     for (i in subba) {
         log_temp <- f <- NULL
 
@@ -727,6 +727,7 @@ create_forecast_log <- function(
 
 
         log <- rbind(log, log_temp)
+        log_new <- rbind(log_temp, log_new)
 
         index <- index + 1
     }
@@ -735,7 +736,7 @@ create_forecast_log <- function(
         write.csv(log, forecast_log_path, row.names = FALSE)
     }
 
-    invisible(log)
+    invisible(log_new)
 }
 
 
@@ -754,9 +755,19 @@ save_forecast <- function(
     save = FALSE) {
     if (!init) {
         message("Load archive forecast and append new forecast")
-        forecast_archive <- read.csv(forecast_path) |>
-            dplyr::mutate(time = as.POSIXct(time))
-
+        forecast_archive <- readr::read_csv(
+            file = forecast_path,
+            col_types = readr::cols(
+                time = readr::col_datetime(format = ""),
+                subba = readr::col_character(),
+                method = readr::col_character(),
+                model = readr::col_character(),
+                yhat = readr::col_double(),
+                lower = readr::col_double(),
+                upper = readr::col_double(),
+                forecast_label = readr::col_character()
+            )
+        )
         f <- rbind(forecast_archive, forecast)
     } else {
         message("Initialize the forecast file")
