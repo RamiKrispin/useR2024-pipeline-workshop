@@ -306,6 +306,12 @@ if (!any(calibrated_models$refresh)) {
         print(input)
 
 
+        refit <- calibrated_models |>
+            dplyr::filter(partition == p) |>
+            dplyr::filter(method == m) |>
+            modeltime_refit(data = input)
+
+        print(refit)
 
         # fc_subba <- create_forecast(
         #     input = df,
