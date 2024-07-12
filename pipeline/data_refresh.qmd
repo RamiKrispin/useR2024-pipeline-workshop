@@ -183,186 +183,21 @@ p
 ```{r}
 #| label: forecast refresh
 fc <- NULL
-input <- data
-index <- "period"
-var <- "value"
-train_length <- 24 * 31 * 25
-lags <- lags
-init <- FALSE
-save <- FALSE
-seasonal <- TRUE
-trend <- TRUE
-
-
-input <- input |>
-    dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var))
-
-input_last_point <- input |>
-    dplyr::group_by(subba) |>
-    dplyr::filter(!!rlang::sym(index) == max(!!rlang::sym(index))) |>
-    dplyr::ungroup() |>
-    dplyr::select(subba, last_time = !!rlang::sym(index))
-
-
-
-
-log <- load_forecast_log(forecast_log_path = forecast_log_path)
-
-calibrated_models <- readRDS(calibrated_models_path) |>
-    dplyr::left_join(
-        log |>
-            dplyr::filter(success) |>
-            dplyr::group_by(subba) |>
-            dplyr::filter(end == max(end)) |>
-            dplyr::select(subba, method, end),
-        by = c("subba", "method")
-    ) |>
-    dplyr::left_join(input_last_point, by = "subba") |>
-    dplyr::mutate(end_filter = lubridate::floor_date(last_time, unit = "day") - lubridate::hours(1)) |>
-    dplyr::mutate(refresh = ifelse(end_filter < last_time, TRUE, FALSE))
-
-head(log)
-
-head(calibrated_models)
-
-
-
-if (!any(calibrated_models$refresh)) {
-    message("No new data is available to refresh the forecast")
-} else {
-    message("New data is avaiable, starting the forecast refresh process")
-    calibrated_models <- calibrated_models |> dplyr::filter(refresh == TRUE)
-
-    for (i in 1:nrow(calibrated_models)) {
-        end <- calibrated_models$end_filter[i]
-        start <- end - lubridate::hours(train_length)
-
-
-        temp <- input |>
-            dplyr::filter(
-                subba == calibrated_models$subba[i],
-                !!rlang::sym(index) >= start & !!rlang::sym(index) <= end
-            )
-        if (i == 1) {
-            d <- temp
-        } else {
-            d <- rbind(d, temp)
-        }
-    }
-
-
-    head(d)
-
-
-    input <- d
-    selected_models <- calibrated_models
-    h <- h
-    index <- index
-    var <- "y"
-    lags <- lags
-    seasonal <- TRUE
-    trend <- TRUE
-
-    subba_list <- unique(input$subba)
-
-    fc <- lapply(seq_along(subba_list), function(i) {
-        m <- selected_models |> dplyr::filter(subba == subba_list[i])
-        method <- m$method[1]
-
-        df <- input |>
-            dplyr::filter(subba == subba_list[i])
-
-        print(head(df))
-        input <- df
-        calibrated_models <- m
-        p <- max(calibrated_models$partition)
-        m <- method
-        new_data <- create_future_frame(input = input, index = index, h = h)
-
-        input$y <- input[[var]]
-
-        if (!is.null(lags)) {
-            input <- input |> add_lags(index = index, var = var, lags = lags)
-            new_data <- add_lags_forecast(
-                input = input,
-                forecast = new_data,
-                index = index,
-                var = var,
-                lags = lags
-            )
-        }
-
-        if (seasonal) {
-            input <- add_seasonal(input = input, index = index)
-            new_data <- add_seasonal(input = new_data, index = index)
-        }
-
-        if (trend) {
-            input <- add_trend(input = input, index = index)
-            new_data <- add_trend(input = new_data, index = index)
-        }
-
-
-        print(input)
-
-
-        refit <- calibrated_models |>
-            dplyr::filter(partition == p) |>
-            dplyr::filter(method == m) |>
-            modeltime_refit(data = input)
-
-        print(refit)
-
-
-        fc <- refit |>
-            modeltime_forecast(new_data = new_data, actual_data = input) |>
-            dplyr::filter(.key == "prediction")
-
-        print(fc)
-
-        # fc_subba <- create_forecast(
-        #     input = df,
-        #     calibrated_models = m,
-        #     method = method,
-        #     h = h,
-        #     index = index,
-        #     var = var,
-        #     lags = lags,
-        #     seasonal = seasonal,
-        #     trend = trend
-        # ) |>
-        #     dplyr::select(time = .index, subba, method, model = .model_desc, yhat = .value, lower = .conf_lo, upper = .conf_hi)
-
-
-
-
-        # fc_subba$forecast_label <- as.character(as.Date(min(fc_subba$time)))
-        return(input)
-    }) |> dplyr::bind_rows()
-
-
-
-    print(head(fc))
-
-    # head(forecast)
-}
-
-
-# fc <- refresh_forecast(
-#     input = data,
-#     forecast_log_path = forecast_log_path,
-#     forecast_path = forecast_path,
-#     calibrated_models_path = calibrated_models_path,
-#     h = h,
-#     index = "period",
-#     var = "value",
-#     train_length = 24 * 31 * 25,
-#     lags = lags,
-#     init = FALSE,
-#     save = TRUE,
-#     seasonal = TRUE,
-#     trend = TRUE
-# )
+fc <- refresh_forecast(
+    input = data,
+    forecast_log_path = forecast_log_path,
+    forecast_path = forecast_path,
+    calibrated_models_path = calibrated_models_path,
+    h = h,
+    index = "period",
+    var = "value",
+    train_length = 24 * 31 * 25,
+    lags = lags,
+    init = FALSE,
+    save = TRUE,
+    seasonal = TRUE,
+    trend = TRUE
+)
 
 
 ```
