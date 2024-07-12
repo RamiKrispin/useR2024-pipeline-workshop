@@ -186,7 +186,7 @@ fc <- NULL
 
 
 
-print(orecast_log_path)
+print(forecast_log_path)
 print(forecast_path)
 print(calibrated_models_path)
 print(h)
