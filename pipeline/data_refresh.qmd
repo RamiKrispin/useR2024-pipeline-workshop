@@ -228,45 +228,43 @@ head(calibrated_models)
 
 
 if (!any(calibrated_models$refresh)) {
-        message("No new data is available to refresh the forecast")
-    } else {
-        message("New data is avaiable, starting the forecast refresh process")
-        calibrated_models <- calibrated_models |> dplyr::filter(refresh == TRUE)
+    message("No new data is available to refresh the forecast")
+} else {
+    message("New data is avaiable, starting the forecast refresh process")
+    calibrated_models <- calibrated_models |> dplyr::filter(refresh == TRUE)
 
-        for (i in 1:nrow(calibrated_models)) {
-            end <- calibrated_models$end_filter[i]
-            start <- end - lubridate::hours(train_length)
+    for (i in 1:nrow(calibrated_models)) {
+        end <- calibrated_models$end_filter[i]
+        start <- end - lubridate::hours(train_length)
 
 
-            temp <- input |>
-                dplyr::filter(
-                    subba == calibrated_models$subba[i],
-                    !!rlang::sym(index) >= start & !!rlang::sym(index) <= end
-                )
-            if (i == 1) {
-                d <- temp
-            } else {
-                d <- rbind(d, temp)
-            }
+        temp <- input |>
+            dplyr::filter(
+                subba == calibrated_models$subba[i],
+                !!rlang::sym(index) >= start & !!rlang::sym(index) <= end
+            )
+        if (i == 1) {
+            d <- temp
+        } else {
+            d <- rbind(d, temp)
         }
+    }
 
 
-        head(d)
+    head(d)
+}
+# forecast <- create_forecast_subba(
+#     input = d,
+#     selected_models = calibrated_models,
+#     h = h,
+#     index = index,
+#     var = "y",
+#     lags = lags,
+#     seasonal = TRUE,
+#     trend = TRUE
+# )
 
-
-
-        # forecast <- create_forecast_subba(
-        #     input = d,
-        #     selected_models = calibrated_models,
-        #     h = h,
-        #     index = index,
-        #     var = "y",
-        #     lags = lags,
-        #     seasonal = TRUE,
-        #     trend = TRUE
-        # )
-
-        # head(forecast)
+# head(forecast)
 
 
 
