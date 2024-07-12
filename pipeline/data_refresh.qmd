@@ -253,16 +253,48 @@ if (!any(calibrated_models$refresh)) {
 
     head(d)
 
-    forecast <- create_forecast_subba(
-        input = d,
-        selected_models = calibrated_models,
-        h = h,
-        index = index,
-        var = "y",
-        lags = lags,
-        seasonal = TRUE,
-        trend = TRUE
-    )
+
+    input <- d
+    selected_models <- calibrated_models
+    h <- h
+    index <- index
+    var <- "y"
+    lags <- lags
+    seasonal <- TRUE
+    trend <- TRUE
+
+    subba_list <- unique(input$subba)
+
+    fc <- lapply(seq_along(subba_list), function(i) {
+        m <- selected_models |> dplyr::filter(subba == subba_list[i])
+        method <- m$method[1]
+
+        df <- input |>
+            dplyr::filter(subba == subba_list[i])
+
+        print(head(df))
+
+        fc_subba <- create_forecast(
+            input = df,
+            calibrated_models = m,
+            method = method,
+            h = h,
+            index = index,
+            var = var,
+            lags = lags,
+            seasonal = seasonal,
+            trend = trend
+        )
+        head(fc_subba)
+        # |>
+        #     dplyr::select(time = .index, subba, method, model = .model_desc, yhat = .value, lower = .conf_lo, upper = .conf_hi)
+        # fc_subba$forecast_label <- as.character(as.Date(min(fc_subba$time)))
+        return(fc_subba)
+    }) |> dplyr::bind_rows()
+
+
+
+
 
     # head(forecast)
 }
