@@ -255,18 +255,18 @@ if (!any(calibrated_models$refresh)) {
 
 
 
-        forecast <- create_forecast_subba(
-            input = d,
-            selected_models = calibrated_models,
-            h = h,
-            index = index,
-            var = "y",
-            lags = lags,
-            seasonal = TRUE,
-            trend = TRUE
-        )
+        # forecast <- create_forecast_subba(
+        #     input = d,
+        #     selected_models = calibrated_models,
+        #     h = h,
+        #     index = index,
+        #     var = "y",
+        #     lags = lags,
+        #     seasonal = TRUE,
+        #     trend = TRUE
+        # )
 
-        head(forecast)
+        # head(forecast)
 
 
 
