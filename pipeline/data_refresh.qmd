@@ -313,6 +313,13 @@ if (!any(calibrated_models$refresh)) {
 
         print(refit)
 
+
+        fc <- refit |>
+            modeltime_forecast(new_data = new_data, actual_data = input) |>
+            dplyr::filter(.key == "prediction")
+
+        print(fc)
+
         # fc_subba <- create_forecast(
         #     input = df,
         #     calibrated_models = m,
