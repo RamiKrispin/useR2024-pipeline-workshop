@@ -183,14 +183,49 @@ p
 ```{r}
 #| label: forecast refresh
 fc <- NULL
+input <- data
+index <- "period"
+var <- "value"
+train_length <- 24 * 31 * 25
+lags <- lags
+init <- FALSE
+save <- TRUE
+seasonal <- TRUE
+trend <- TRUE
+
+
+input <- input |>
+    dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var))
+
+input_last_point <- input |>
+    dplyr::group_by(subba) |>
+    dplyr::filter(!!rlang::sym(index) == max(!!rlang::sym(index))) |>
+    dplyr::ungroup() |>
+    dplyr::select(subba, last_time = !!rlang::sym(index))
 
 
 
-print(forecast_log_path)
-print(forecast_path)
-print(calibrated_models_path)
-print(h)
-print(lags)
+
+log <- load_forecast_log(forecast_log_path = forecast_log_path)
+
+calibrated_models <- readRDS(calibrated_models_path) |>
+    dplyr::left_join(
+        log |>
+            dplyr::filter(success) |>
+            dplyr::group_by(subba) |>
+            dplyr::filter(end == max(end)) |>
+            dplyr::select(subba, method, end),
+        by = c("subba", "method")
+    ) |>
+    dplyr::left_join(input_last_point, by = "subba") |>
+    dplyr::mutate(end_filter = lubridate::floor_date(last_time, unit = "day") - lubridate::hours(1)) |>
+    dplyr::mutate(refresh = ifelse(end_filter < last_time, TRUE, FALSE))
+
+head(log)
+
+head(calibrated_models)
+
+
 # fc <- refresh_forecast(
 #     input = data,
 #     forecast_log_path = forecast_log_path,
