@@ -189,7 +189,7 @@ var <- "value"
 train_length <- 24 * 31 * 25
 lags <- lags
 init <- FALSE
-save <- TRUE
+save <- FALSE
 seasonal <- TRUE
 trend <- TRUE
 
@@ -273,31 +273,68 @@ if (!any(calibrated_models$refresh)) {
             dplyr::filter(subba == subba_list[i])
 
         print(head(df))
+        input <- df
+        calibrated_models <- m
+        p <- max(calibrated_models$partition)
+        m <- method
+        new_data <- create_future_frame(input = input, index = index, h = h)
 
-        fc_subba <- create_forecast(
-            input = df,
-            calibrated_models = m,
-            method = method,
-            h = h,
-            index = index,
-            var = var,
-            lags = lags,
-            seasonal = seasonal,
-            trend = trend
-        )
-        head(fc_subba)
-        # |>
+        input$y <- input[[var]]
+
+        if (!is.null(lags)) {
+            input <- input |> add_lags(index = index, var = var, lags = lags)
+            new_data <- add_lags_forecast(
+                input = input,
+                forecast = new_data,
+                index = index,
+                var = var,
+                lags = lags
+            )
+        }
+
+        if (seasonal) {
+            input <- add_seasonal(input = input, index = index)
+            new_data <- add_seasonal(input = new_data, index = index)
+        }
+
+        if (trend) {
+            input <- add_trend(input = input, index = index)
+            new_data <- add_trend(input = new_data, index = index)
+        }
+
+
+        print(input)
+
+
+
+        # fc_subba <- create_forecast(
+        #     input = df,
+        #     calibrated_models = m,
+        #     method = method,
+        #     h = h,
+        #     index = index,
+        #     var = var,
+        #     lags = lags,
+        #     seasonal = seasonal,
+        #     trend = trend
+        # ) |>
         #     dplyr::select(time = .index, subba, method, model = .model_desc, yhat = .value, lower = .conf_lo, upper = .conf_hi)
+
+
+
+
         # fc_subba$forecast_label <- as.character(as.Date(min(fc_subba$time)))
-        return(fc_subba)
+        return(input)
     }) |> dplyr::bind_rows()
 
 
 
-
+    print(head(fc))
 
     # head(forecast)
 }
+
+
 # fc <- refresh_forecast(
 #     input = data,
 #     forecast_log_path = forecast_log_path,
