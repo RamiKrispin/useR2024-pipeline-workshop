@@ -171,6 +171,7 @@ data <- readr::read_csv(file = data_path, col_types = readr::cols(
     value_units = readr::col_character()
 ))
 
+head(data)
 
 p <- plot_ly(data, x = ~period, y = ~value, color = ~subba, type = "scatter", mode = "lines")
 
@@ -182,21 +183,29 @@ p
 ```{r}
 #| label: forecast refresh
 fc <- NULL
-fc <- refresh_forecast(
-    input = data,
-    forecast_log_path = forecast_log_path,
-    forecast_path = forecast_path,
-    calibrated_models_path = calibrated_models_path,
-    h = h,
-    index = "period",
-    var = "value",
-    train_length = 24 * 31 * 25,
-    lags = lags,
-    init = FALSE,
-    save = TRUE,
-    seasonal = TRUE,
-    trend = TRUE
-)
+
+
+
+print(orecast_log_path)
+print(forecast_path)
+print(calibrated_models_path)
+print(h)
+print(lags)
+# fc <- refresh_forecast(
+#     input = data,
+#     forecast_log_path = forecast_log_path,
+#     forecast_path = forecast_path,
+#     calibrated_models_path = calibrated_models_path,
+#     h = h,
+#     index = "period",
+#     var = "value",
+#     train_length = 24 * 31 * 25,
+#     lags = lags,
+#     init = FALSE,
+#     save = TRUE,
+#     seasonal = TRUE,
+#     trend = TRUE
+# )
 
 
 ```
