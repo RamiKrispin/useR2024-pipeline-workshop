@@ -103,9 +103,11 @@ for (i in 1:nrow(m)) {
         index <- seq.POSIXt(from = start, to = end, by = "hour")
         ts_obj <- data.frame(period = index) |>
             left_join(temp, by = c("period" = "time"))
+        data_available <- TRUE
     } else {
         ts_obj <- NULL
         print("No new data is available")
+        data_available <- FALSE
     }
 
     meta_temp <- create_metadata(data = ts_obj, start = start, end = end, type = "refresh")
@@ -122,7 +124,9 @@ for (i in 1:nrow(m)) {
         meta_temp$update <- TRUE
     } else {
         meta_temp$update <- FALSE
-        meta_temp$comments <- paste(meta_temp$comments, "The data refresh failed, please check the log; ", sep = "")
+        if (data_available && !meta_temp$success) {
+            meta_temp$comments <- paste(meta_temp$comments, "The data refresh failed, please check the log; ", sep = "")
+        }
     }
     meta_temp$index <- NA
     meta_df <- as.data.frame(meta_temp)
