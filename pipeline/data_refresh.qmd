@@ -58,6 +58,10 @@ lags <- meta_json$backtesting$features$lags |> unlist()
 train_length <- meta_json$train_length
 offset <- meta_json$offset
 tz <- meta_json$timezone
+init <- FALSE
+save <- TRUE
+
+
 ```
 
 ```{r}
@@ -193,8 +197,8 @@ fc <- refresh_forecast(
     var = "value",
     train_length = 24 * 31 * 25,
     lags = lags,
-    init = FALSE,
-    save = TRUE,
+    init = init,
+    save = save,
     seasonal = TRUE,
     trend = TRUE
 )
