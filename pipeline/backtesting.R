@@ -914,7 +914,7 @@ refresh_forecast <- function(
 
 
         for (i in 1:nrow(calibrated_models)) {
-            end <- calibrated_models$end_filter[i]
+            end <- calibrated_models$end[i]
             start <- end - lubridate::hours(train_length)
 
 
