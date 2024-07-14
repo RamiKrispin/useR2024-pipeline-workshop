@@ -1,7 +1,5 @@
 # Deploy and Monitor ML Pipelines with Open Source and Free Applications
 
-WIP...pre-spell check
-
 Materials for the **Deploy and Monitor ML Pipelines with Open Source and Free Applications** workshop at the [useR!2024](https://events.linuxfoundation.org/user/) conference. The session is virtual and open for registration over [here](https://events.linuxfoundation.org/user/program/virtual-schedule/).
 
 When 📆: Tuesday, July 2nd, 10:00 PST
@@ -322,13 +320,13 @@ In addition, we will use a set of funtions to process the data and log metadata,
 ### Forecasting Models
 
 The second component of the pipeline is setting up the forecasting models, this includes:
-- Create a backtesting framework to test and evaluate models performance. This includes the following steps:
+- Create a backtesting framework to test and evaluate the model performance. This includes the following steps:
     - Define models
     - Define backtesting settings
     - Run the models and Log their performance
     - Log for each series the best model
 - For the demonstration, we will use the following models from the [Modeltime](https://business-science.github.io/modeltime/index.html) library:
-    - Linear Regresion
+    - Linear Regression
     - GLMNET
     - Prophet
 
