@@ -1,10 +1,10 @@
 # Deploy and Monitor ML Pipelines with Open Source and Free Applications
 
-WIP...pre-spell check
-
 Materials for the **Deploy and Monitor ML Pipelines with Open Source and Free Applications** workshop at the [useR!2024](https://events.linuxfoundation.org/user/) conference. The session is virtual and open for registration over [here](https://events.linuxfoundation.org/user/program/virtual-schedule/).
 
 When 📆: Tuesday, July 2nd, 10:00 PST
+
+Recording 📽️: https://www.youtube.com/watch?v=TUclJZaN4L4
 
 The workshop is based on the LinkedIn Learning course - [Data Pipeline Automation with GitHub Actions](https://www.linkedin.com/learning/data-pipeline-automation-with-github-actions-using-r-and-python/), code is available [here](https://github.com/LinkedInLearning/data-pipeline-automation-with-github-actions-4503382).
 
@@ -320,13 +320,13 @@ In addition, we will use a set of funtions to process the data and log metadata,
 ### Forecasting Models
 
 The second component of the pipeline is setting up the forecasting models, this includes:
-- Create a backtesting framework to test and evaluate models performance. This includes the following steps:
+- Create a backtesting framework to test and evaluate the model performance. This includes the following steps:
     - Define models
     - Define backtesting settings
     - Run the models and Log their performance
     - Log for each series the best model
 - For the demonstration, we will use the following models from the [Modeltime](https://business-science.github.io/modeltime/index.html) library:
-    - Linear Regresion
+    - Linear Regression
     - GLMNET
     - Prophet
 
@@ -452,13 +452,16 @@ Setting logs and metadata collection enables us to monitor the health of the pip
 
 - **Forecasting models:** Define the selected model per series based on the backtesting evaluation results
 
-<figure>
- <img src="images/models-log.png" width="100%" align="center"/></a>
-<figcaption> The selected forecasting models</figcaption>
-</figure>
-
-<br>
-<br />
+```R
+# Modeltime Table
+# A tibble: 4 × 8
+  .model_id .model    .model_desc .type .calibration_data method partition subba
+      <int> <named l> <chr>       <chr> <list>            <chr>      <int> <chr>
+1         6 <fit[+]>  LM          Test  <tibble [24 × 4]> model6        20 PGAE 
+2        17 <fit[+]>  GLMNET      Test  <tibble [24 × 4]> model…        20 SCE  
+3         7 <fit[+]>  LM          Test  <tibble [24 × 4]> model7        20 SDGE 
+4         5 <fit[+]>  LM          Test  <tibble [24 × 4]> model5        20 VEA  
+```
 
 
 

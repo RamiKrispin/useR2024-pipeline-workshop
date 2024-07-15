@@ -58,6 +58,10 @@ lags <- meta_json$backtesting$features$lags |> unlist()
 train_length <- meta_json$train_length
 offset <- meta_json$offset
 tz <- meta_json$timezone
+init <- FALSE
+save <- TRUE
+
+
 ```
 
 ```{r}
@@ -99,9 +103,11 @@ for (i in 1:nrow(m)) {
         index <- seq.POSIXt(from = start, to = end, by = "hour")
         ts_obj <- data.frame(period = index) |>
             left_join(temp, by = c("period" = "time"))
+        data_available <- TRUE
     } else {
         ts_obj <- NULL
         print("No new data is available")
+        data_available <- FALSE
     }
 
     meta_temp <- create_metadata(data = ts_obj, start = start, end = end, type = "refresh")
@@ -118,7 +124,9 @@ for (i in 1:nrow(m)) {
         meta_temp$update <- TRUE
     } else {
         meta_temp$update <- FALSE
-        meta_temp$comments <- paste(meta_temp$comments, "The data refresh failed, please check the log; ", sep = "")
+        if (data_available && !meta_temp$success) {
+            meta_temp$comments <- paste(meta_temp$comments, "The data refresh failed, please check the log; ", sep = "")
+        }
     }
     meta_temp$index <- NA
     meta_df <- as.data.frame(meta_temp)
@@ -193,8 +201,8 @@ fc <- refresh_forecast(
     var = "value",
     train_length = 24 * 31 * 25,
     lags = lags,
-    init = FALSE,
-    save = TRUE,
+    init = init,
+    save = save,
     seasonal = TRUE,
     trend = TRUE
 )
@@ -205,16 +213,16 @@ fc <- refresh_forecast(
 
 ```{r}
 #| label: plot the forecast
-# if (!is.null(fc)) {
-#     head(fc)
-#     plot_forecast(
-#         input = data,
-#         forecast = fc,
-#         var = "value",
-#         index = "period",
-#         hours = 24 * 3
-#     )
-# }
+if (!is.null(fc)) {
+    head(fc)
+    plot_forecast(
+        input = data,
+        forecast = fc,
+        var = "value",
+        index = "period",
+        hours = 24 * 3
+    )
+}
 
 ```
 
@@ -223,47 +231,47 @@ fc <- refresh_forecast(
 
 ```{r}
 #| label: score the forecast
-# fc_log <- load_forecast_log(forecast_log_path = forecast_log_path)
+fc_log <- load_forecast_log(forecast_log_path = forecast_log_path)
 
-# score_rows <- which(!fc_log$score)
-
-
-# if (length(score_rows) == 0) {
-#     message("All models were scored ")
-# } else {
-#     subba <- unique(fc_log$subba[score_rows])
-
-#     fc <- load_forecast(forecast_path = forecast_path)
-
-#     for (i in subba) {
-#         print(i)
-#         d <- data |> dplyr::filter(subba == i)
-
-#         r <- which(fc_log$subba == i & !fc_log$score)
-
-#         for (l in r) {
-#             f <- fc |>
-#                 dplyr::filter(forecast_label == fc_log$forecast_label[l], subba == i) |>
-#                 dplyr::left_join(d |> dplyr::select(time = period, subba, value), by = c("time", "subba")) |>
-#                 dplyr::filter(!is.na(value))
+score_rows <- which(!fc_log$score)
 
 
-#             fc_log$mape[l] <- mean(abs(f$value - f$yhat) / f$value)
+if (length(score_rows) == 0) {
+    message("All models were scored ")
+} else {
+    subba <- unique(fc_log$subba[score_rows])
 
-#             fc_log$rmse[l] <- (mean((f$value - f$yhat)^2))^0.5
+    fc <- load_forecast(forecast_path = forecast_path)
 
-#             fc_log$coverage[l] <- length(which(f$value <= f$upper & f$value >= f$lower)) / nrow(f)
+    for (i in subba) {
+        print(i)
+        d <- data |> dplyr::filter(subba == i)
 
-#             if (nrow(f) == fc_log$h[l]) {
-#                 fc_log$score[l] <- TRUE
-#             }
+        r <- which(fc_log$subba == i & !fc_log$score)
 
-#             write.csv(fc_log, forecast_log_path, row.names = FALSE)
-#         }
-#     }
+        for (l in r) {
+            f <- fc |>
+                dplyr::filter(forecast_label == fc_log$forecast_label[l], subba == i) |>
+                dplyr::left_join(d |> dplyr::select(time = period, subba, value), by = c("time", "subba")) |>
+                dplyr::filter(!is.na(value))
 
-#     gt::gt(fc_log[score_rows, ])
-# }
+
+            fc_log$mape[l] <- mean(abs(f$value - f$yhat) / f$value)
+
+            fc_log$rmse[l] <- (mean((f$value - f$yhat)^2))^0.5
+
+            fc_log$coverage[l] <- length(which(f$value <= f$upper & f$value >= f$lower)) / nrow(f)
+
+            if (nrow(f) == fc_log$h[l]) {
+                fc_log$score[l] <- TRUE
+            }
+
+            write.csv(fc_log, forecast_log_path, row.names = FALSE)
+        }
+    }
+
+    gt::gt(fc_log[score_rows, ])
+}
 
 
 ```

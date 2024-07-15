@@ -869,9 +869,12 @@ refresh_forecast <- function(
     seasonal = TRUE,
     trend = TRUE) {
     forecast <- NULL
+    message("Checking if new data points are available to refresh the forecast")
     input <- input |>
         dplyr::select(subba, !!rlang::sym(index), y = !!rlang::sym(var))
 
+    subba_list <- unique(input$subba)
+    # Check for the last timestampe
     input_last_point <- input |>
         dplyr::group_by(subba) |>
         dplyr::filter(!!rlang::sym(index) == max(!!rlang::sym(index))) |>
@@ -881,28 +884,37 @@ refresh_forecast <- function(
 
     log <- load_forecast_log(forecast_log_path = forecast_log_path)
 
-    calibrated_models <- readRDS(calibrated_models_path) |>
-        dplyr::left_join(
-            log |>
-                dplyr::filter(success) |>
-                dplyr::group_by(subba) |>
-                dplyr::filter(end == max(end)) |>
-                dplyr::select(subba, method, end),
-            by = c("subba", "method")
-        ) |>
+    last_fc_log_init <- log |>
+        dplyr::filter(success) |>
+        dplyr::filter(end == max(end))
+
+
+    if (nrow(last_fc_log_init) != length(subba_list)) {
+        stop("Mismatch between the number of unique subba in the input data and the forecast log")
+    }
+
+    last_fc_log <- last_fc_log_init |>
+        dplyr::select(subba, model, method, forecast_label, start, end, h) |>
         dplyr::left_join(input_last_point, by = "subba") |>
-        dplyr::mutate(end_filter = lubridate::floor_date(last_time, unit = "day") - lubridate::hours(1)) |>
-        dplyr::mutate(refresh = ifelse(end_filter < last_time, TRUE, FALSE))
+        dplyr::mutate(refresh_flag = ifelse(last_time > end, TRUE, FALSE))
 
+    if (any(last_fc_log$refresh_flag)) {
+        calibrated_models <- readRDS(calibrated_models_path) |>
+            dplyr::left_join(
+                last_fc_log,
+                by = c("subba", "method")
+            ) |>
+            dplyr::filter(refresh_flag)
 
-    if (!any(calibrated_models$refresh)) {
-        message("No new data is available to refresh the forecast")
-    } else {
+        if (nrow(calibrated_models) == 0) {
+            stop("Failed to merge the calibrated_models table with the forecast log")
+        }
+
         message("New data is avaiable, starting the forecast refresh process")
-        calibrated_models <- calibrated_models |> dplyr::filter(refresh == TRUE)
+
 
         for (i in 1:nrow(calibrated_models)) {
-            end <- calibrated_models$end_filter[i]
+            end <- calibrated_models$end[i]
             start <- end - lubridate::hours(train_length)
 
 
@@ -946,11 +958,10 @@ refresh_forecast <- function(
             forecast_save <- forecast |> dplyr::filter(subba %in% subba_success)
             save_forecast(forecast = forecast_save, forecast_path = forecast_path, init = init, save = save)
         }
+    } else {
+        message("There is no sufficent data to refresh the froecast")
     }
-
-    if (!is.null(forecast)) {
-        return(forecast)
-    }
+    invisible(forecast)
 }
 
 
