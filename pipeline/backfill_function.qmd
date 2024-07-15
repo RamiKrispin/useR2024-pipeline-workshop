@@ -68,6 +68,9 @@ lags <- meta_json$backtesting$features$lags |> unlist()
 train_length <- meta_json$train_length
 offset <- meta_json$offset
 tz <- meta_json$timezone
+models_settings <- meta_json$backtesting$models
+init <- FALSE
+save <- TRUE
 ```
 
 
@@ -209,14 +212,18 @@ p
 head(d)
 
 fc <- NULL
-calibrated_models <- readRDS(calibrated_models_path)
-fc <- create_forecast_subba(
+fc <- refresh_forecast(
     input = d,
-    selected_models = calibrated_models,
+    forecast_log_path = forecast_log_path,
+    forecast_path = forecast_path,
+    models_settings = models_settings,
     h = h,
     index = "period",
     var = "value",
+    train_length = 24 * 31 * 25,
     lags = lags,
+    init = init,
+    save = save,
     seasonal = TRUE,
     trend = TRUE
 )
