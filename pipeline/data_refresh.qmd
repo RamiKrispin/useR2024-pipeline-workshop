@@ -58,6 +58,7 @@ lags <- meta_json$backtesting$features$lags |> unlist()
 train_length <- meta_json$train_length
 offset <- meta_json$offset
 tz <- meta_json$timezone
+models_settings <- meta_json$backtesting$models
 init <- FALSE
 save <- TRUE
 
@@ -195,7 +196,7 @@ fc <- refresh_forecast(
     input = data,
     forecast_log_path = forecast_log_path,
     forecast_path = forecast_path,
-    calibrated_models_path = calibrated_models_path,
+    models_settings = models_settings,
     h = h,
     index = "period",
     var = "value",

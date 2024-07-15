@@ -226,10 +226,23 @@ backtesting <- function(
 #' @description The function sets the forecast future data.frame object. This includes the future seasonal features and trend
 #' @param input The input time series data in a data.frame format
 #' @param index The input data index column name
+#' @param var The input numeric column name
 #' @param h The forecast horizon
+#' @param lags The lag position values
+#' @param seasonal A boolean, if set to TRUE (default) will add seasonal
+#' features to the input and new_data objects
+#' @param trend A boolean, if set to TRUE (default) will add trend
+#' feature to the input and new_data objects
 #' @return A data.frame object with forecast deterministic features for the forecast
 
-create_future_frame <- function(input, index, h) {
+create_future_frame <- function(
+    input,
+    index,
+    var,
+    h,
+    seasonal = FALSE,
+    trend = FALSE,
+    lags = NULL) {
     last <- max(input[[index]])
 
     new_index <- seq.POSIXt(from = last + lubridate::hours(1), length.out = h, by = "hour")
@@ -237,13 +250,31 @@ create_future_frame <- function(input, index, h) {
     future_data <- data.frame(new_index)
     names(future_data) <- index
 
-    future_data <- future_data |>
-        dplyr::mutate(
-            trend = as.numeric(!!rlang::sym(index)),
-            month = factor(lubridate::month(!!rlang::sym(index), label = TRUE), ordered = FALSE),
-            wday = factor(lubridate::wday(!!rlang::sym(index), label = TRUE), ordered = FALSE),
-            hour = factor(lubridate::hour(!!rlang::sym(index)), order = FALSE)
+    if (seasonal) {
+        future_data <- future_data |>
+            dplyr::mutate(
+                month = factor(lubridate::month(!!rlang::sym(index), label = TRUE), ordered = FALSE),
+                wday = factor(lubridate::wday(!!rlang::sym(index), label = TRUE), ordered = FALSE),
+                hour = factor(lubridate::hour(!!rlang::sym(index)), order = FALSE)
+            )
+    }
+
+    if (trend) {
+        future_data <- future_data |>
+            dplyr::mutate(
+                trend = as.numeric(!!rlang::sym(index))
+            )
+    }
+
+    if (!is.null(lags)) {
+        future_data <- add_lags_forecast(
+            input = input,
+            forecast = future_data,
+            index = index,
+            var = var,
+            lags = lags
         )
+    }
 
     return((future_data))
 }
@@ -312,7 +343,6 @@ create_forecast <- function(
 }
 
 
-
 #' Create a Forecast Using a ModelTime Calibrated Model for Multiple Series
 #' @description The function is a wrapper of the create_forecast function, enables to create forecast for multiple series
 #' @param input The input time series data in a data.frame format
@@ -370,8 +400,6 @@ create_forecast_subba <- function(
 
     return(fc)
 }
-
-
 
 #' A Backtesting Function
 #' @description The function uses the backtesting function to test, evaluate, and score forecasting models over a multiple time series
@@ -686,32 +714,33 @@ create_forecast_log <- function(
     init = FALSE,
     save = FALSE) {
     if (init) {
-        index <- 1
+        row_index <- 1
         log <- log_frame()
     } else {
         log <- load_forecast_log(forecast_log_path = forecast_log_path)
 
-        index <- max(log$index) + 1
+        row_index <- max(log$index) + 1
     }
 
     fc_attr <- attributes(forecast)
-
+    index <- fc_attr$index
     subba <- fc_attr$subba
     log_new <- NULL
     for (i in subba) {
         log_temp <- f <- NULL
 
-        f <- forecast |> dplyr::filter(subba == i)
+        f <- forecast |>
+            dplyr::filter(subba == i)
 
         log_temp <- data.frame(
-            index = index,
+            index = row_index,
             subba = i,
             model = unique(f$model),
             method = unique(f$method),
             time = Sys.time(),
             forecast_label = unique(f$forecast_label),
-            start = min(f$time),
-            end = max(f$time),
+            start = min(f[[index]]),
+            end = max(f[[index]]),
             h = fc_attr$h,
             n_obs = nrow(f),
             n_obs_flag = ifelse(fc_attr$h == nrow(f), TRUE, FALSE),
@@ -729,7 +758,7 @@ create_forecast_log <- function(
         log <- rbind(log, log_temp)
         log_new <- rbind(log_temp, log_new)
 
-        index <- index + 1
+        row_index <- row_index + 1
     }
 
     if (save) {
@@ -753,8 +782,14 @@ save_forecast <- function(
     forecast_path,
     init = FALSE,
     save = FALSE) {
+    forecast_attr <- attributes(forecast)
+
+    forecast$time <- forecast[[forecast_attr$index]]
+    forecast[[forecast_attr$index]] <- NULL
+
     if (!init) {
         message("Load archive forecast and append new forecast")
+
         forecast_archive <- readr::read_csv(
             file = forecast_path,
             col_types = readr::cols(
@@ -843,7 +878,7 @@ add_seasonal <- function(input, index) {
 #' @param input The input time series data in a data.frame format
 #' @param forecast_log_path The forecast log file path and name
 #' @param forecast_path The forecast file path and name
-#' @param calibrated_models_path The calibrated models path
+#' @param models_settings A list with the models settings and arguments
 #' @param h The forecast horizon
 #' @param index The input data index column name
 #' @param var The input numeric column name
@@ -852,13 +887,17 @@ add_seasonal <- function(input, index) {
 #' @param init Initialize the forecast file (overwrite previous file if exists) when sets to TRUE,
 #' by default set to FALSE
 #' @param save Saves the log results if sets to TRUE, by default sets to FALSE
+#' @param seasonal A boolean, if set to TRUE (default) will add seasonal
+#' features to the input and new_data objects
+#' @param trend A boolean, if set to TRUE (default) will add trend
+#' feature to the input and new_data objects
 #' @return A forecast object, if meet the refresh condition
 
 refresh_forecast <- function(
     input,
     forecast_log_path,
+    models_settings,
     forecast_path,
-    calibrated_models_path,
     h,
     index,
     var,
@@ -899,50 +938,100 @@ refresh_forecast <- function(
         dplyr::mutate(refresh_flag = ifelse(last_time > end, TRUE, FALSE))
 
     if (any(last_fc_log$refresh_flag)) {
-        calibrated_models <- readRDS(calibrated_models_path) |>
-            dplyr::left_join(
-                last_fc_log,
-                by = c("subba", "method")
-            ) |>
-            dplyr::filter(refresh_flag)
-
-        if (nrow(calibrated_models) == 0) {
-            stop("Failed to merge the calibrated_models table with the forecast log")
-        }
-
         message("New data is avaiable, starting the forecast refresh process")
 
 
-        for (i in 1:nrow(calibrated_models)) {
-            end <- calibrated_models$end[i]
+        forecast <- lapply(1:nrow(last_fc_log), function(i) {
+            method <- last_fc_log$method[i]
+            s <- last_fc_log$subba[i]
+
+            message(paste(s, " Create a forecast", sep = ":"))
+            end <- last_fc_log$end[i]
             start <- end - lubridate::hours(train_length)
 
+            label <- as.character(lubridate::round_date(end + lubridate::hours(1), unit = "day"))
 
-            temp <- input |>
+
+
+            model_arg <- models_settings[[method]]
+
+            d <- input |>
                 dplyr::filter(
-                    subba == calibrated_models$subba[i],
+                    subba == s,
                     !!rlang::sym(index) >= start & !!rlang::sym(index) <= end
                 )
-            if (i == 1) {
-                d <- temp
-            } else {
-                d <- rbind(d, temp)
+
+            new_data <- create_future_frame(
+                input = d,
+                index = index,
+                h = h,
+                lags = lags,
+                seasonal = seasonal,
+                trend = trend,
+                var = "y"
+            )
+
+            if (seasonal) {
+                d <- d |> add_seasonal(index = index)
             }
-        }
+            if (trend) {
+                d <- d |> add_trend(index = index)
+            }
 
+            if (!is.null(lags)) {
+                d <- add_lags(
+                    input = d,
+                    index = index,
+                    var = "y",
+                    lags = lags
+                )
+            }
 
+            fc <- NULL
 
-        forecast <- create_forecast_subba(
-            input = d,
-            selected_models = calibrated_models,
-            h = h,
-            index = index,
-            var = "y",
-            lags = lags,
-            seasonal = TRUE,
-            trend = TRUE
-        )
+            tryCatch(
+                expr = {
+                    fc <- forecast_model(
+                        input = d,
+                        new_data = new_data,
+                        model_arg = model_arg,
+                        filter = TRUE
+                    )
+                },
+                error = function(e) {
+                    message("Error with the forecast_model, check the error log")
+                    print(e)
+                }
+            )
 
+            if (is.null(fc)) {
+                stop(paste("Failed to create a forecast to", s, sep = " "))
+            }
+
+            forecast <- fc |>
+                dplyr::select(
+                    .index,
+                    model = .model_desc,
+                    yhat = .value,
+                    lower = .conf_lo,
+                    upper = .conf_hi
+                ) |>
+                dplyr::mutate(subba = s, forecast_label = label, method = method)
+
+            forecast[[index]] <- forecast$.index
+
+            forecast$.index <- NULL
+
+            return(forecast)
+        }) |>
+            dplyr::bind_rows()
+
+        attr(forecast, "h") <- h
+        attr(forecast, "var") <- var
+        attr(forecast, "index") <- index
+        attr(forecast, "lags") <- lags
+        attr(forecast, "subba") <- last_fc_log$subba
+        print(index)
         log <- create_forecast_log(
             forecast = forecast,
             forecast_log_path = forecast_log_path,
@@ -1115,4 +1204,69 @@ pull_events <- function(
         dplyr::select(date, index, event_name, type, itunes_planning_org, product)
 
     return(df)
+}
+
+
+
+#' Train a Modeltime Model
+#' @param input The input time series data in a data.frame format
+#' @param model_arg The model arguments from the settings file
+#' @return A trained modeltime object
+
+train_model <- function(input, model_arg) {
+    if (is.null(model_arg$function_args)) {
+        fun_arg <- ""
+    } else {
+        fun_arg <- model_arg$function_args
+    }
+
+    md <- eval(parse(text = paste("parsnip::", model_arg$function_type, "(", fun_arg, ")", sep = ""))) |>
+        parsnip::set_engine(model_arg$engine)
+
+    if (!is.null(model_arg$set_mode)) {
+        md <- md |> parsnip::set_mode(model_arg$set_mode)
+    }
+
+    md_f <- as.formula(model_arg$formula)
+
+    md <- md |> parsnip::fit(md_f, data = input)
+
+    return(md)
+}
+
+#' Forecast a Modeltime Model
+#' @param input The input time series data in a data.frame format
+#' @param new_data The forecast inputs data.frame
+#' @param model_arg The model arguments from the settings file
+#' @param filter A boolean, if set to TRUE (default), will return the modeltime
+#' forecast object with only the forecast (e.g., without the actual)
+#' @return A trained modeltime object
+forecast_model <- function(
+    input,
+    new_data,
+    model_arg,
+    filter = TRUE) {
+    train_index <- nrow(input) - nrow(new_data)
+    test_index <- train_length + 1
+    train <- input[1:train_index, ]
+    test <- input[(train_index + 1):nrow(input), ]
+    md <- train_model(input = train, model_arg = model_arg)
+
+
+
+    calibration_md <- md %>%
+        modeltime_calibrate(new_data = test)
+
+    forecast <- calibration_md |>
+        modeltime_forecast(
+            new_data    = new_data,
+            actual_data = input
+        )
+
+    if (filter) {
+        forecast <- forecast |>
+            dplyr::filter(.key == "prediction")
+    }
+
+    return(forecast)
 }
