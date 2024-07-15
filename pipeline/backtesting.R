@@ -630,7 +630,7 @@ plot_forecast <- function(input, forecast, hours, index, var) {
 
         p <- plotly::plot_ly() |>
             plotly::add_ribbons(
-                x = f$time,
+                x = f[[index]],
                 ymin = f$lower,
                 ymax = f$upper,
                 line = list(color = "rgba(144,224,239, 0.75)"),
@@ -646,7 +646,7 @@ plot_forecast <- function(input, forecast, hours, index, var) {
                 line = list(color = "#1f77b4")
             ) |>
             plotly::add_lines(
-                x = f$time,
+                x = f[[index]],
                 y = f$yhat,
                 line = list(color = "#17becf", dash = "dash"),
                 name = "Forecast",
@@ -879,6 +879,7 @@ add_seasonal <- function(input, index) {
 #' @param forecast_log_path The forecast log file path and name
 #' @param forecast_path The forecast file path and name
 #' @param models_settings A list with the models settings and arguments
+#' @param model_mapping A data.frame with the model's mapping by subba using the model lable (e.g., method)
 #' @param h The forecast horizon
 #' @param index The input data index column name
 #' @param var The input numeric column name
@@ -897,6 +898,7 @@ refresh_forecast <- function(
     input,
     forecast_log_path,
     models_settings,
+    model_mapping,
     forecast_path,
     h,
     index,
@@ -920,24 +922,32 @@ refresh_forecast <- function(
         dplyr::ungroup() |>
         dplyr::select(subba, last_time = !!rlang::sym(index))
 
+    if (init) {
+        end <- lubridate::round_date(min(input_last_point$last_time),
+            unit = "day"
+        ) - lubridate::hours(1)
 
-    log <- load_forecast_log(forecast_log_path = forecast_log_path)
+        last_fc_log <- models_mapping |>
+            dplyr::mutate(end = end)
+    } else {
+        log <- load_forecast_log(forecast_log_path = forecast_log_path)
 
-    last_fc_log_init <- log |>
-        dplyr::filter(success) |>
-        dplyr::filter(end == max(end))
+        last_fc_log_init <- log |>
+            dplyr::filter(success) |>
+            dplyr::filter(end == max(end))
 
 
-    if (nrow(last_fc_log_init) != length(subba_list)) {
-        stop("Mismatch between the number of unique subba in the input data and the forecast log")
+        if (nrow(last_fc_log_init) != length(subba_list)) {
+            stop("Mismatch between the number of unique subba in the input data and the forecast log")
+        }
+
+        last_fc_log <- last_fc_log_init |>
+            dplyr::select(subba, model, method, forecast_label, start, end, h) |>
+            dplyr::left_join(input_last_point, by = "subba") |>
+            dplyr::mutate(refresh_flag = ifelse(last_time > end, TRUE, FALSE))
     }
 
-    last_fc_log <- last_fc_log_init |>
-        dplyr::select(subba, model, method, forecast_label, start, end, h) |>
-        dplyr::left_join(input_last_point, by = "subba") |>
-        dplyr::mutate(refresh_flag = ifelse(last_time > end, TRUE, FALSE))
-
-    if (any(last_fc_log$refresh_flag)) {
+    if (init || any(last_fc_log$refresh_flag)) {
         message("New data is avaiable, starting the forecast refresh process")
 
 
@@ -1031,7 +1041,7 @@ refresh_forecast <- function(
         attr(forecast, "index") <- index
         attr(forecast, "lags") <- lags
         attr(forecast, "subba") <- last_fc_log$subba
-        print(index)
+
         log <- create_forecast_log(
             forecast = forecast,
             forecast_log_path = forecast_log_path,
@@ -1045,12 +1055,19 @@ refresh_forecast <- function(
 
         if (length(subba_success) > 0) {
             forecast_save <- forecast |> dplyr::filter(subba %in% subba_success)
-            save_forecast(forecast = forecast_save, forecast_path = forecast_path, init = init, save = save)
+            save_forecast(
+                forecast = forecast_save,
+                forecast_path = forecast_path,
+                init = init,
+                save = save
+            )
         }
     } else {
         message("There is no sufficent data to refresh the froecast")
     }
-    invisible(forecast)
+    if (!is.null(forecast)) {
+        invisible(forecast)
+    }
 }
 
 

@@ -22,6 +22,7 @@ The data backfill process includes the following steps:
 ## Load Libraries and Functions
 
 ```{r}
+#| label: loading libraries
 #| warning: false
 library(dplyr)
 library(EIAapi)
@@ -35,27 +36,20 @@ source("../pipeline/backtesting.R")
 
 
 ```{r}
+#| label: loading the settings
 #| warning: false
 meta_json <- read_json(path = "../settings/settings.json")
 s <- meta_json$series
 series <- lapply(1:length(s), function(i) {
-    subba_id <- NULL
-    # subba_id <- s[[i]]$subba_id
-
-    if (!is.na(as.numeric(s[[i]]$subba_id))) {
-        subba_id <- as.numeric(s[[i]]$subba_id)
-    } else {
-        subba_id <- s[[i]]$subba_id
-    }
-
     return(data.frame(
         parent_id = s[[i]]$parent_id,
         parent_name = s[[i]]$parent_name,
-        subba_id = subba_id,
+        subba_id = s[[i]]$subba_id,
         subba_name = s[[i]]$subba_name
     ))
 }) |>
     bind_rows()
+
 
 api_path <- meta_json$api_path
 meta_path <- meta_json$meta_path
@@ -69,12 +63,13 @@ train_length <- meta_json$train_length
 offset <- meta_json$offset
 tz <- meta_json$timezone
 models_settings <- meta_json$backtesting$models
-init <- FALSE
+init <- TRUE
 save <- TRUE
 ```
 
 
 ```{r}
+#| label: setting the get parameters
 #| warning: false
 facets_template <- list(
     parent = NULL,
@@ -116,6 +111,7 @@ eia_api_key <- Sys.getenv("EIA_API_KEY")
 
 
 ```{r}
+#| label: pull metadata
 metadata <- eia_metadata(api_key = eia_api_key, api_path = api_path)
 print(names(metadata))
 
@@ -126,6 +122,7 @@ print(metadata$endPeriod)
 
 
 ```{r}
+#| label: pull the data
 #| warning: false
 meta <- NULL
 data <- NULL
@@ -170,6 +167,7 @@ for (i in 1:nrow(series)) {
 
 
 ```{r}
+#| label: review the meta
 print(meta)
 # The initial pull has some missing values
 head(data)
@@ -178,6 +176,7 @@ head(data)
 
 
 ```{r}
+#| label: save the data
 # Save the data
 d <- append_data(data_path = data_path, new_data = data, init = TRUE, save = TRUE)
 # Save the metadata
@@ -192,7 +191,7 @@ m <- append_metadata(meta_path = meta_path, new_meta = meta, init = TRUE, save =
 We will use Plotly to visualize the series:
 
 ```{r}
-
+#| label: plot the output
 end <- lubridate::floor_date((max(data$period)), unit = "day")
 d <- data |>
     arrange(subba, period) |>
@@ -209,7 +208,11 @@ p
 ## Create an Inital Forecast
 
 ```{r}
+#| label: create a forecast
 head(d)
+
+models_mapping <- readRDS(file = calibrated_models_path) |>
+    dplyr::select(subba, method)
 
 fc <- NULL
 fc <- refresh_forecast(
@@ -217,6 +220,7 @@ fc <- refresh_forecast(
     forecast_log_path = forecast_log_path,
     forecast_path = forecast_path,
     models_settings = models_settings,
+    model_mapping = model_mapping,
     h = h,
     index = "period",
     var = "value",
@@ -229,10 +233,6 @@ fc <- refresh_forecast(
 )
 
 if (!is.null(fc)) {
-    create_forecast_log(forecast = fc, forecast_log_path = forecast_log_path, h = h, init = TRUE, save = TRUE)
-
-    save_forecast(forecast = fc, forecast_path = forecast_path, init = TRUE, save = TRUE)
-
     p <- plot_forecast(
         input = d,
         forecast = fc,
