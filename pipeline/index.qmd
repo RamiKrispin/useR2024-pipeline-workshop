@@ -53,6 +53,8 @@ for (i in 1:nrow(forecast_log_sub)) {
     }
 }
 
+fc$period <- fc$time
+
 
 
 

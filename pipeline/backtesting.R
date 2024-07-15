@@ -954,9 +954,18 @@ refresh_forecast <- function(
         forecast <- lapply(1:nrow(last_fc_log), function(i) {
             method <- last_fc_log$method[i]
             s <- last_fc_log$subba[i]
-
             message(paste(s, " Create a forecast", sep = ":"))
-            end <- last_fc_log$end[i]
+
+            last_time <- lubridate::floor_date(input_last_point$last_time[which(input_last_point$subba == s)],
+                unit = "day"
+            ) - lubridate::hours(1)
+
+            if (last_time > last_fc_log$end[i]) {
+                end <- last_time
+            } else {
+                end <- last_fc_log$end[i]
+            }
+
             start <- end - lubridate::hours(train_length)
 
             label <- as.character(lubridate::round_date(end + lubridate::hours(1), unit = "day"))
