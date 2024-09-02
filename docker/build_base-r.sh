@@ -25,7 +25,7 @@ fi
 ver=${r_major}.${r_minor}.${r_patch}
 tag="${CPU}.${ver}"
 docker_file=Dockerfile.base-r
-image_name=$user_name/$image_label:$tag
+image_name=$user_name/$image_label:dev.$tag
 
 echo "Image name: $image_name"
 
