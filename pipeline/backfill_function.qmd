@@ -63,7 +63,6 @@ train_length <- meta_json$train_length
 offset <- meta_json$offset
 tz <- meta_json$timezone
 models_settings <- meta_json$backtesting$models
-init <- TRUE
 save <- TRUE
 ```
 

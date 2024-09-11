@@ -61,8 +61,6 @@ tz <- meta_json$timezone
 models_settings <- meta_json$backtesting$models
 init <- FALSE
 save <- TRUE
-
-
 ```
 
 ```{r}
