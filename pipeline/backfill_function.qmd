@@ -102,6 +102,8 @@ end <- as.POSIXct(paste(
     sep = ""
 ))
 
+start <- as.POSIXct("2019-01-01 01:00:00")
+
 attr(start, "tzone") <- tz
 attr(end, "tzone") <- tz
 
@@ -181,7 +183,7 @@ d <- append_data(data_path = data_path, new_data = data, init = TRUE, save = TRU
 # Save the metadata
 meta["success"] <- TRUE
 meta["update"] <- TRUE
-m <- append_metadata(meta_path = meta_path, new_meta = meta, init = TRUE, save = TRUE)
+m <- append_metadata(meta_path = meta_path, new_meta = meta, init = FALSE, save = TRUE)
 ```
 
 
