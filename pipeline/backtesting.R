@@ -934,6 +934,7 @@ refresh_forecast <- function(
 
         last_fc_log_init <- log |>
             dplyr::filter(success) |>
+            dplyr::group_by(subba) |>
             dplyr::filter(end == max(end))
 
 

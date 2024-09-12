@@ -76,12 +76,12 @@ p
 
 ```{r}
 #| title: Data Log
-gt::gt(log)
+gt::gt(tail(log, 25))
 ```
 
 
 
 ```{r}
 #| title: Forecast Log
-gt::gt(forecast_log)
+gt::gt(tail(forecast_log, 25))
 ```
